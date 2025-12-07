@@ -55,7 +55,8 @@ final class VoteController
         );
 
         try {
-            $this->castVoteService->execute($request);
+            // 🔧 Исправление: вызываем реальный метод handle(), а не несуществующий execute()
+            $this->castVoteService->handle($request);
         } catch (\DomainException $e) {
             $this->jsonError($e->getMessage(), 400);
             return;
@@ -82,11 +83,6 @@ final class VoteController
         $percentages = $response->getPercentages();  // optionId => percent
         $total       = $response->getTotalVotes();
 
-        // Формируем удобную структуру для фронта:
-        // [
-        //   { "option_id": 3, "count": 10, "percent": 58.82 },
-        //   { "option_id": 5, "count": 7,  "percent": 41.18 },
-        // ]
         $optionsData = [];
         foreach ($results as $optionId => $count) {
             $optionsData[] = [

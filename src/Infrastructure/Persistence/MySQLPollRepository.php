@@ -64,13 +64,13 @@ SQL;
     }
 
     /**
-     * Найти все активные опросы по типу контента и его id.
+     * Найти все активные опросы по типу контента и его ключу.
      *
      * @return Poll[]
      */
     public function findAllActiveByContent(
         string $contentType,
-        int $contentId,
+        string $contentKey,
         DateTimeImmutable $now
     ): array {
         $sql = <<<SQL
@@ -86,7 +86,7 @@ SQL;
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([
             'content_type' => $contentType,
-            'content_key'  => (string) $contentId,
+            'content_key'  => $contentKey,
             'now'          => $now->format('Y-m-d H:i:s'),
         ]);
 
@@ -113,7 +113,7 @@ SQL;
 
         $columns = array_keys($data);
         $placeholders = array_map(
-            static fn(string $col): string => ':' . $col,
+            static fn (string $col): string => ':' . $col,
             $columns
         );
 
@@ -151,12 +151,10 @@ SQL;
 
         foreach ($options as $option) {
             if (!$option instanceof Option) {
-                // На всякий случай — пропускаем мусор
                 continue;
             }
 
             $optionData = $option->toArray();
-            // id генерирует БД, poll_id заменяем на актуальный
             unset($optionData['id']);
             $optionData['poll_id']    = $newId;
             $optionData['created_at'] = (new DateTimeImmutable())->format('Y-m-d H:i:s');
@@ -174,7 +172,6 @@ SQL;
         $id = $data['id'] ?? null;
 
         if ($id === null) {
-            // Если id нет — считаем, что это новый опрос
             $this->add($poll, []);
             return;
         }
@@ -182,11 +179,11 @@ SQL;
         $columns = array_keys($data);
         $columns = array_filter(
             $columns,
-            static fn(string $col): bool => $col !== 'id'
+            static fn (string $col): bool => $col !== 'id'
         );
 
         $assignments = array_map(
-            static fn(string $col): string => sprintf('%s = :%s', $col, $col),
+            static fn (string $col): string => sprintf('%s = :%s', $col, $col),
             $columns
         );
 

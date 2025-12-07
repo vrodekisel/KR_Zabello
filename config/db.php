@@ -3,16 +3,17 @@
 declare(strict_types=1);
 
 return [
-    'driver'    => 'mysql',
-    'host'      => getenv('DB_HOST') ?: 'mysql',
-    'port'      => getenv('DB_PORT') ?: '3306',
-    'database'  => getenv('DB_DATABASE') ?: 'ingame_content_voting',
-    'username'  => getenv('DB_USERNAME') ?: 'app',
-    'password'  => getenv('DB_PASSWORD') ?: 'secret',
-    'charset'   => getenv('DB_CHARSET') ?: 'utf8mb4',
-    'collation' => getenv('DB_COLLATION') ?: 'utf8mb4_unicode_ci',
-    'options'   => [
-        \PDO::ATTR_ERRMODE            => \PDO::ERRMODE_EXCEPTION,
-        \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
-    ],
+    // Параметры подключения к MySQL.
+    // В Docker-сети хост базы — это имя сервиса: "db".
+    'host'    => getenv('DB_HOST') ?: 'db',
+    'port'    => (int) (getenv('DB_PORT') ?: 3306),
+    'dbname'  => getenv('DB_DATABASE') ?: 'ingame_content_voting',
+
+    // ВАЖНО: ключ должен называться именно 'user', а не 'username',
+    // потому что MySQLConnection читает $config['user'].
+    'user'     => getenv('DB_USERNAME') ?: 'app_user',
+    'password' => getenv('DB_PASSWORD') ?: 'secret',
+
+    // На всякий случай явно задаём charset
+    'charset' => 'utf8mb4',
 ];

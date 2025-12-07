@@ -1,35 +1,51 @@
-version: "3.9"
+version: '3.9'
 
 services:
   app:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    container_name: ingame_app
+    image: kr_zabello-app
+    container_name: ingame-content-voting-app
     ports:
       - "8080:80"
     volumes:
       - .:/var/www/html
     depends_on:
-      - mysql
+      - db
     environment:
       APP_ENV: local
-      APP_DEBUG: true
+      APP_DEBUG: 'true'
       APP_URL: http://localhost:8080
+      APP_LOCALE: en
+      APP_TIMEZONE: UTC
 
-  mysql:
+      # ----------------------------
+      # ВАЖНО: контейнер базы называется "db",
+      # именно по этому имени PHP должен подключаться.
+      # ----------------------------
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: ingame_content_voting
+      DB_USERNAME: app_user
+      DB_PASSWORD: secret
+
+  db:
     image: mysql:8.0
-    container_name: ingame_mysql
-    restart: always
+    container_name: ingame-content-voting-db
+    command: --default-authentication-plugin=mysql_native_password
+    restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: ingame_content_voting
-      MYSQL_USER: app
+      MYSQL_USER: app_user
       MYSQL_PASSWORD: secret
     ports:
       - "3307:3306"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - db_data:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
 
 volumes:
-  mysql_data:
+  db_data:

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Infrastructure\Persistence;
 
 use App\Domain\Entity\User;
@@ -45,43 +47,64 @@ class MySQLUserRepository implements UserRepository
         return User::fromArray($row);
     }
 
-    public function save(User $user): User
+    /**
+     * Добавление нового пользователя (INSERT).
+     */
+    public function add(User $user): void
     {
         $data = $user->toArray();
-        // ожидаем, что в массиве есть ключ 'id'
+
+        // Эти поля не отправляем в INSERT:
+        // id — автоинкремент в БД
+        // role — колонки в таблице нет, это чисто PHP-поле
+        unset(
+            $data['id'],
+            $data['role']
+        );
+
+        $columns = array_keys($data);
+        $placeholders = array_map(
+            static fn (string $col): string => ':' . $col,
+            $columns
+        );
+
+        $sql = sprintf(
+            'INSERT INTO users (%s) VALUES (%s)',
+            implode(', ', $columns),
+            implode(', ', $placeholders)
+        );
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($data);
+    }
+
+    /**
+     * Сохранение существующего пользователя (UPDATE).
+     * Если id нет — считаем, что это новый пользователь и вызываем add().
+     */
+    public function save(User $user): void
+    {
+        $data = $user->toArray();
+
+        // В UPDATE тоже не трогаем поле role — его нет в таблице
+        unset($data['role']);
+
         $id = $data['id'] ?? null;
 
         if ($id === null) {
-            // INSERT
-            unset($data['id']);
-
-            $columns = array_keys($data);
-            $placeholders = array_map(
-                fn(string $col): string => ':' . $col,
-                $columns
-            );
-
-            $sql = sprintf(
-                'INSERT INTO users (%s) VALUES (%s)',
-                implode(', ', $columns),
-                implode(', ', $placeholders)
-            );
-
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute($data);
-
-            $newId = (int)$this->pdo->lastInsertId();
-            $data['id'] = $newId;
-
-            return User::fromArray($data);
+            $this->add($user);
+            return;
         }
 
-        // UPDATE
+        // Обновляем все поля, кроме id
         $columns = array_keys($data);
-        $columns = array_filter($columns, fn(string $col): bool => $col !== 'id');
+        $columns = array_filter(
+            $columns,
+            static fn (string $col): bool => $col !== 'id'
+        );
 
         $assignments = array_map(
-            fn(string $col): string => sprintf('%s = :%s', $col, $col),
+            static fn (string $col): string => sprintf('%s = :%s', $col, $col),
             $columns
         );
 
@@ -92,7 +115,5 @@ class MySQLUserRepository implements UserRepository
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($data);
-
-        return $user;
     }
 }

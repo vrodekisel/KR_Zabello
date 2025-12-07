@@ -6,6 +6,7 @@ namespace App\Http\Controller;
 
 use App\Domain\Repository\UserRepository;
 use App\Domain\Entity\User;
+use DateTimeImmutable;
 
 class AuthController
 {
@@ -43,11 +44,12 @@ class AuthController
         $passwordHash = password_hash($password, PASSWORD_BCRYPT);
 
         $user = new User(
-            null,
-            $username,
-            $passwordHash,
-            false,
-            new \DateTimeImmutable()
+            null,                   // id — пока null, БД сама выставит
+            $username,              // имя пользователя
+            $passwordHash,          // хэш пароля
+            User::ROLE_PLAYER,      // роль игрока
+            false,                  // is_banned
+            new DateTimeImmutable() // created_at = сейчас
         );
 
         $this->userRepository->save($user);
@@ -150,22 +152,64 @@ class AuthController
     }
 
     /**
-     * Вспомогательный метод для других контроллеров
-     * (можно будет вынести в отдельный сервис, если захочешь).
+     * Вспомогательный метод для других контроллеров:
+     * достаёт user_id из токена в заголовке.
+     *
+     * Поддерживает:
+     *   - Authorization: Bearer <token>
+     *   - X-Auth-Token: <token>
      */
     public function getUserIdFromToken(): ?int
     {
-        $header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-        if (stripos($header, 'Bearer ') !== 0) {
+        $rawHeader = null;
+
+        // 1) Пытаемся получить заголовки «по-человечески»
+        if (function_exists('getallheaders')) {
+            $headers = getallheaders();
+            foreach ($headers as $name => $value) {
+                $lower = strtolower((string)$name);
+
+                // Стандартный вариант
+                if ($lower === 'authorization') {
+                    $rawHeader = (string)$value;
+                    break;
+                }
+
+                // Альтернативный: X-Auth-Token: <token>
+                if ($lower === 'x-auth-token') {
+                    $rawHeader = 'Bearer ' . trim((string)$value);
+                    // break не обязателен, но можно и выйти
+                }
+            }
+        }
+
+        // 2) Фоллбеки через $_SERVER, если getallheaders() не помог
+        if ($rawHeader === null || $rawHeader === '') {
+            if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
+                $rawHeader = (string)$_SERVER['HTTP_AUTHORIZATION'];
+            } elseif (!empty($_SERVER['Authorization'])) {
+                $rawHeader = (string)$_SERVER['Authorization'];
+            } elseif (!empty($_SERVER['HTTP_X_AUTH_TOKEN'])) {
+                $rawHeader = 'Bearer ' . trim((string)$_SERVER['HTTP_X_AUTH_TOKEN']);
+            }
+        }
+
+        if ($rawHeader === null || $rawHeader === '') {
             return null;
         }
 
-        $encoded = trim(substr($header, 7));
-        if ($encoded === '') {
+        // 3) Отделяем сам токен
+        $token = $rawHeader;
+        if (stripos($rawHeader, 'Bearer ') === 0) {
+            $token = trim(substr($rawHeader, 7));
+        }
+
+        if ($token === '') {
             return null;
         }
 
-        $decoded = base64_decode($encoded, true);
+        // 4) Декодируем и проверяем подпись
+        $decoded = base64_decode($token, true);
         if ($decoded === false) {
             return null;
         }
@@ -180,7 +224,7 @@ class AuthController
             return null;
         }
 
-        $secret = (string)($this->config['app_key'] ?? 'local_dev_app_key');
+        $secret       = (string)($this->config['app_key'] ?? 'local_dev_app_key');
         $expectedHash = hash('sha256', $idPart . $secret);
 
         if (!hash_equals($expectedHash, $hashPart)) {

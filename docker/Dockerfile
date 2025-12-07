@@ -1,20 +1,22 @@
 FROM php:8.2-apache
 
-# Включаем mod_rewrite
+# Включаем mod_rewrite для "красивых" URL и роутера
 RUN a2enmod rewrite
 
-# Устанавливаем PDO MySQL
+# Устанавливаем расширения для работы с MySQL
 RUN docker-php-ext-install pdo pdo_mysql
 
-# Копируем проект в контейнер
+# Рабочая директория внутри контейнера
+WORKDIR /var/www/html
+
+# Копируем проект внутрь контейнера
 COPY . /var/www/html
 
-# Настройка DocumentRoot -> public/
-WORKDIR /var/www/html
-RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
-RUN sed -i 's|DocumentRoot.*|DocumentRoot /var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
+# Подменяем виртуальный хост на наш, который смотрит в public/
+COPY docker/apache-vhost.conf /etc/apache2/sites-available/000-default.conf
 
-# Права на storage
-RUN chown -R www-data:www-data storage
+# Права на storage (логи и т.п.)
+RUN chown -R www-data:www-data storage || true
 
+# Открываем порт Apache
 EXPOSE 80

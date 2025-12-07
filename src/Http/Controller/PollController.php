@@ -5,11 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Controller;
 
 use App\Application\UseCase\CreatePoll\CreatePollService;
-use App\Application\UseCase\CreatePoll\CreatePollRequest;
 use App\Domain\Repository\PollRepository;
-use App\Domain\Entity\Poll;
+use DateTimeImmutable;
 
-final class PollController
+class PollController
 {
     private CreatePollService $createPollService;
     private PollRepository $pollRepository;
@@ -26,162 +25,136 @@ final class PollController
     }
 
     /**
-     * Список активных опросов по контенту (тип + id).
-     * Ожидает query-параметры: content_type=map|mod, content_id=int
+     * GET /polls
+     *
+     * Сейчас: возвращаем активные опросы.
+     * Если передали ?content_type=...&content_key=..., берём только их.
+     * Если нет — берём демо-набор из seed.sql (карты + моды).
      */
     public function index(): void
     {
-        $contentType = isset($_GET['content_type']) ? (string) $_GET['content_type'] : '';
-        $contentId   = isset($_GET['content_id']) ? (int) $_GET['content_id'] : 0;
+        header('Content-Type: application/json; charset=utf-8');
 
-        if ($contentType === '' || $contentId <= 0) {
-            $this->jsonError('poll.error.invalid_filter', 400);
-            return;
+        $now = new DateTimeImmutable();
+
+        $contentType = $_GET['content_type'] ?? null;
+        $contentKey  = $_GET['content_key'] ?? null;
+
+        $polls = [];
+
+        if ($contentType !== null && $contentKey !== null) {
+            // Точечный фильтр по контенту
+            $polls = $this->pollRepository->findAllActiveByContent(
+                (string) $contentType,
+                (string) $contentKey,
+                $now
+            );
+        } else {
+            // Демо-сценарий для курсовой:
+            // показываем несколько заранее известных контекстов
+            $contexts = [
+                ['MAP', 'next_map'],
+                ['MOD', 'better_grass'],
+                ['MOD', 'popular_mod'],
+            ];
+
+            foreach ($contexts as [$type, $key]) {
+                $list = $this->pollRepository->findAllActiveByContent(
+                    $type,
+                    $key,
+                    $now
+                );
+
+                foreach ($list as $poll) {
+                    $polls[] = $poll;
+                }
+            }
         }
 
-        $now = new \DateTimeImmutable();
-
-        $polls = $this->pollRepository->findAllActiveByContent(
-            $contentType,
-            $contentId,
-            $now
-        );
-
         $data = array_map(
-            static function (Poll $poll) use ($now): array {
+            static function ($poll) use ($now): array {
+                $startsAt   = method_exists($poll, 'getStartsAt') ? $poll->getStartsAt() : null;
+                $endsAt     = method_exists($poll, 'getEndsAt') ? $poll->getEndsAt() : null;
+                $createdAt  = method_exists($poll, 'getCreatedAt') ? $poll->getCreatedAt() : null;
+
                 return [
                     'id'              => $poll->getId(),
-                    'content_type'    => $poll->getContentType(),
-                    'content_id'      => $poll->getContentId(),
                     'title_key'       => $poll->getTitleKey(),
                     'description_key' => $poll->getDescriptionKey(),
                     'status'          => $poll->getStatus(),
                     'is_active'       => $poll->isActive($now),
-                    'starts_at'       => $poll->getStartsAt()?->format(\DateTimeInterface::ATOM),
-                    'ends_at'         => $poll->getEndsAt()?->format(\DateTimeInterface::ATOM),
+
+                    // аккуратно работаем с null
+                    'starts_at'       => $startsAt instanceof \DateTimeInterface
+                        ? $startsAt->format(DATE_ATOM)
+                        : null,
+                    'ends_at'         => $endsAt instanceof \DateTimeInterface
+                        ? $endsAt->format(DATE_ATOM)
+                        : null,
                     'created_by'      => $poll->getCreatedByUserId(),
-                    'created_at'      => $poll->getCreatedAt()->format(\DateTimeInterface::ATOM),
+                    'created_at'      => $createdAt instanceof \DateTimeInterface
+                        ? $createdAt->format(DATE_ATOM)
+                        : null,
                 ];
             },
             $polls
         );
 
-        $this->jsonResponse([
-            'message' => 'poll.list.success',
-            'data'    => $data,
-        ]);
+        echo json_encode(
+            ['data' => $data],
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        );
     }
 
     /**
-     * Создать опрос.
+     * POST /polls
      *
-     * Ожидает JSON:
-     * {
-     *   "type": "map" | "mod",
-     *   "content_id": 123,
-     *   "title_key": "poll.title.xxx",
-     *   "description_key": "poll.desc.xxx",  // опционально
-     *   "options": ["option.label.map.ancient_forest", "..."],
-     *   "expires_at": "2025-12-31T23:59:59Z" // опционально
-     * }
+     * Создание опроса.
      */
     public function create(): void
     {
-        $userId = $this->authController->getUserIdFromToken();
-        if ($userId === null) {
-            $this->jsonError('auth.error.token_required', 401);
-            return;
-        }
-
-        $input = $this->getJsonInput();
-
-        $type           = isset($input['type']) ? (string) $input['type'] : '';
-        $contentId      = isset($input['content_id']) ? (int) $input['content_id'] : 0;
-        $titleKey       = isset($input['title_key']) ? (string) $input['title_key'] : '';
-        $descriptionKey = isset($input['description_key']) ? (string) $input['description_key'] : null;
-        $optionKeys     = isset($input['options']) && \is_array($input['options']) ? $input['options'] : [];
-        $expiresAt      = null;
-
-        if (isset($input['expires_at']) && is_string($input['expires_at']) && $input['expires_at'] !== '') {
-            try {
-                $expiresAt = new \DateTimeImmutable($input['expires_at']);
-            } catch (\Exception $e) {
-                $this->jsonError('poll.error.invalid_expires_at', 400);
-                return;
-            }
-        }
-
-        if ($type === '' || $contentId <= 0 || $titleKey === '' || empty($optionKeys)) {
-            $this->jsonError('poll.error.invalid_payload', 400);
-            return;
-        }
-
-        $request = new CreatePollRequest(
-            $userId,          // creatorUserId
-            $titleKey,
-            $descriptionKey,
-            $type,            // contextType (map|mod)
-            $optionKeys,      // optionLabelKeys
-            $expiresAt        // expiresAt (DateTimeImmutable|null)
-        );
-
-        try {
-            $response = $this->createPollService->handle($request);
-        } catch (\RuntimeException $e) {
-            // Например: error.user_not_found, error.user_banned и т.п.
-            $this->jsonError($e->getMessage(), 400);
-            return;
-        }
-
-        $pollDTO = $response->getPoll();
-
-        $this->jsonResponse([
-            'message' => 'poll.create.success',
-            'data'    => [
-                'id'              => $pollDTO->getId(),
-                'title_key'       => $pollDTO->getTitleKey(),
-                'description_key' => $pollDTO->getDescriptionKey(),
-                'context_type'    => $pollDTO->getContextType(),
-                'status'          => $pollDTO->getStatus(),
-                'expires_at'      => $pollDTO->getExpiresAt()?->format(\DateTimeInterface::ATOM),
-            ],
-        ], 201);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function getJsonInput(): array
-    {
-        $raw = file_get_contents('php://input');
-        if ($raw === false || $raw === '') {
-            return [];
-        }
-
-        $data = json_decode($raw, true);
-        if (!is_array($data)) {
-            return [];
-        }
-
-        return $data;
-    }
-
-    /**
-     * @param array<string, mixed> $data
-     */
-    private function jsonResponse(array $data, int $statusCode = 200): void
-    {
-        http_response_code($statusCode);
         header('Content-Type: application/json; charset=utf-8');
 
-        echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    }
+        $user = $this->authController->getAuthenticatedUser();
+        if ($user === null) {
+            http_response_code(401);
+            echo json_encode(
+                ['error' => 'auth.error.unauthorized'],
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            );
+            return;
+        }
 
-    private function jsonError(string $messageKey, int $statusCode): void
-    {
-        $this->jsonResponse(
-            ['error' => $messageKey],
-            $statusCode
+        $rawBody = file_get_contents('php://input') ?: '';
+        $data    = json_decode($rawBody, true);
+
+        if (!is_array($data)) {
+            http_response_code(400);
+            echo json_encode(
+                ['error' => 'app.error.invalid_json'],
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            );
+            return;
+        }
+
+        $poll = $this->createPollService->createPoll($user, $data);
+
+        echo json_encode(
+            [
+                'data' => method_exists($poll, 'toArray')
+                    ? $poll->toArray()
+                    : [
+                        'id'              => $poll->getId(),
+                        'title_key'       => $poll->getTitleKey(),
+                        'description_key' => $poll->getDescriptionKey(),
+                        'status'          => $poll->getStatus(),
+                        'created_at'      => $poll->getCreatedAt()
+                            ? $poll->getCreatedAt()->format(DATE_ATOM)
+                            : null,
+                        'created_by'      => $poll->getCreatedByUserId(),
+                    ],
+            ],
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
         );
     }
 }

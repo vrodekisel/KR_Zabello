@@ -6,6 +6,7 @@ use App\Http\Router;
 use App\Http\Controller\AuthController;
 use App\Http\Controller\PollController;
 use App\Http\Controller\VoteController;
+use App\Http\Controller\WebPollController;
 use App\Infrastructure\Persistence\MySQLConnection;
 use App\Infrastructure\Persistence\MySQLUserRepository;
 use App\Infrastructure\Persistence\MySQLPollRepository;
@@ -14,20 +15,31 @@ use App\Infrastructure\Logging\FileLogger;
 use App\Application\UseCase\CreatePoll\CreatePollService;
 use App\Application\UseCase\CastVote\CastVoteService;
 use App\Application\UseCase\GetPollResults\GetPollResultsService;
+use App\Domain.Service\VotePolicyService;
 
 require __DIR__ . '/../vendor/autoload.php';
 
 // Можно выставить таймзону, чтобы даты были стабильнее
 date_default_timezone_set('UTC');
 
-// Глобальный обработчик непойманных исключений
+// Глобальный обработчик непойманных исключений (временный, расширенный для отладки)
 set_exception_handler(function (Throwable $e): void {
+    // Логируем подробности в error_log Apache
+    error_log(sprintf(
+        "UNHANDLED EXCEPTION: %s in %s:%d\nStack trace:\n%s",
+        $e->getMessage(),
+        $e->getFile(),
+        $e->getLine(),
+        $e->getTraceAsString()
+    ));
+
     http_response_code(500);
     header('Content-Type: application/json; charset=utf-8');
 
     echo json_encode(
         [
-            'error' => 'app.error.unhandled_exception',
+            'error'   => 'app.error.unhandled_exception',
+            'message' => $e->getMessage(), // временно показываем текст ошибки
         ],
         JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
     );
@@ -60,17 +72,18 @@ $logger      = new FileLogger($logFilePath);
 // Прикладной слой: UseCase'ы
 // ------------------------------
 
-// Создание опроса (внутриигровое голосование за контент)
 $createPollService = new CreatePollService(
     $pollRepository,
-    $logger
+    $userRepository
 );
 
-// Голосование (учёт ограничений, логирование, защита от накрутки)
+$votePolicyService = new VotePolicyService(10); // можно оставить 10 или другое ограничение
+
 $castVoteService = new CastVoteService(
     $pollRepository,
+    $userRepository,
     $voteRepository,
-    $logger
+    $votePolicyService
 );
 
 // Получение результатов и рейтингов
@@ -80,7 +93,7 @@ $getPollResultsService = new GetPollResultsService(
 );
 
 // ------------------------------
-// HTTP-слой: контроллеры
+// HTTP-слой: контроллеры (JSON API)
 // ------------------------------
 
 $authController = new AuthController(
@@ -101,12 +114,25 @@ $voteController = new VoteController(
 );
 
 // ------------------------------
+// HTTP-слой: простой HTML-клиент
+// ------------------------------
+//
+// WebPollController — это демо-фронтенд на PHP, который
+// рендерит HTML-страницу опроса и результатов на /web/poll.
+//
+
+$webPollController = new WebPollController(
+    $pollRepository,
+    $castVoteService,
+    $getPollResultsService,
+    $authController
+);
+
+// ------------------------------
 // Маршруты
 // ------------------------------
 //
-// Здесь для простоты маршруты задаются прямо в index.php.
-// Позже можно вынести “описание” в config/routes.php,
-// а здесь только превращать его в массив handler'ов.
+// JSON API (осталось как было)
 //
 
 $routes = [
@@ -134,7 +160,7 @@ $routes = [
         'handler' => [$pollController, 'create'],
     ],
 
-    // Голосование и результаты
+    // Голосование и результаты (JSON API)
     [
         'method'  => 'POST',
         'path'    => '/vote',
@@ -144,6 +170,24 @@ $routes = [
         'method'  => 'GET',
         'path'    => '/results',
         'handler' => [$voteController, 'results'],
+    ],
+
+    // --------------------------
+    // HTML-фронтенд (минимальная страница опроса)
+    // --------------------------
+
+    // Страница опроса + результаты на той же странице
+    [
+        'method'  => 'GET',
+        'path'    => '/web/poll',
+        'handler' => [$webPollController, 'show'],
+    ],
+
+    // Обработка формы голосования и редирект обратно на /web/poll
+    [
+        'method'  => 'POST',
+        'path'    => '/web/poll/vote',
+        'handler' => [$webPollController, 'vote'],
     ],
 ];
 

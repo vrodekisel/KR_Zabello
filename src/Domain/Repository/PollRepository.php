@@ -19,7 +19,7 @@ interface PollRepository
      */
     public function findAllActiveByContent(
         string $contentType,
-        int $contentId,
+        string $contentId,
         DateTimeImmutable $now
     ): array;
 

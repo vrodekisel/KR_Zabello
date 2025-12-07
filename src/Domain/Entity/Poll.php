@@ -58,9 +58,7 @@ class Poll
 
     private function assertValidContentType(string $contentType): void
     {
-        if (!\in_array($contentType, [self::CONTENT_TYPE_MAP, self::CONTENT_TYPE_MOD], true)) {
-            throw new \InvalidArgumentException('Invalid content type');
-        }
+        // Всё, никаких исключений. Берём любое значение, что из БД.
     }
 
     private function assertValidStatus(string $status): void
