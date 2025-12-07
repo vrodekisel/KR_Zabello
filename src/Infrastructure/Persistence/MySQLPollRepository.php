@@ -35,27 +35,23 @@ final class MySQLPollRepository implements PollRepository
     }
 
     /**
-     * Найти активный опрос по id с учётом статуса и (опционально) времени жизни.
+     * Найти активный опрос по id с учётом флага is_active и времени жизни.
      */
     public function findActiveById(int $id, DateTimeImmutable $now): ?Poll
     {
-        // Предполагаем, что в таблице есть:
-        // - status (например, 'active')
-        // - expires_at (может быть NULL)
         $sql = <<<SQL
 SELECT *
 FROM polls
 WHERE id = :id
-  AND status = :status_active
+  AND is_active = 1
   AND (expires_at IS NULL OR expires_at > :now)
 LIMIT 1
 SQL;
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([
-            'id'            => $id,
-            'status_active' => 'active',
-            'now'           => $now->format('Y-m-d H:i:s'),
+            'id'  => $id,
+            'now' => $now->format('Y-m-d H:i:s'),
         ]);
 
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -77,25 +73,21 @@ SQL;
         int $contentId,
         DateTimeImmutable $now
     ): array {
-        // Здесь я опираюсь на уже существующую у тебя логику findActiveByTarget:
-        // в БД, судя по старому коду, есть target_type / target_id / status.
-        // Аргументы contentType/contentId просто маппим на эти поля.
         $sql = <<<SQL
 SELECT *
 FROM polls
-WHERE target_type = :content_type
-  AND target_id   = :content_id
-  AND status      = :status_active
+WHERE content_type = :content_type
+  AND content_key  = :content_key
+  AND is_active    = 1
   AND (expires_at IS NULL OR expires_at > :now)
 ORDER BY created_at DESC
 SQL;
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([
-            'content_type'  => $contentType,
-            'content_id'    => $contentId,
-            'status_active' => 'active',
-            'now'           => $now->format('Y-m-d H:i:s'),
+            'content_type' => $contentType,
+            'content_key'  => (string) $contentId,
+            'now'          => $now->format('Y-m-d H:i:s'),
         ]);
 
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -109,19 +101,19 @@ SQL;
     }
 
     /**
-     * Создать новый опрос (и, опционально, сохранить связанные варианты).
+     * Создать новый опрос (и, при необходимости, сохранить связанные варианты).
      *
      * @param Option[] $options
      */
     public function add(Poll $poll, array $options): void
     {
         $data = $poll->toArray();
-        // На вставку id не отправляем
+        // id генерируется в БД
         unset($data['id']);
 
         $columns = array_keys($data);
         $placeholders = array_map(
-            static fn (string $col): string => ':' . $col,
+            static fn(string $col): string => ':' . $col,
             $columns
         );
 
@@ -134,9 +126,9 @@ SQL;
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($data);
 
-        $newId = (int)$this->pdo->lastInsertId();
+        $newId = (int) $this->pdo->lastInsertId();
 
-        // Если нужно, прописываем id обратно в сущность Poll:
+        // Проставляем id обратно в сущность Poll через reflection
         $reflection = new \ReflectionObject($poll);
         if ($reflection->hasProperty('id')) {
             $prop = $reflection->getProperty('id');
@@ -144,38 +136,32 @@ SQL;
             $prop->setValue($poll, $newId);
         }
 
-        // Варианты (options) сейчас можно либо игнорировать,
-        // либо сохранить в отдельную таблицу (например, poll_options).
-        // Чтобы не ломать проект, делаем максимально мягко:
+        // Если options пустой, выходим
         if ($options === []) {
             return;
         }
 
-        // Если у тебя есть таблица poll_options, этот блок заработает практически сразу,
-        // иначе просто можно будет подправить названия колонок.
+        // Сохраняем варианты в таблицу options
         $sqlOption = <<<SQL
-INSERT INTO poll_options (poll_id, label_key, sort_order, created_at)
-VALUES (:poll_id, :label_key, :sort_order, :created_at)
+INSERT INTO options (poll_id, label, value, position, created_at)
+VALUES (:poll_id, :label, :value, :position, :created_at)
 SQL;
 
         $stmtOption = $this->pdo->prepare($sqlOption);
-        $sort = 0;
 
         foreach ($options as $option) {
-            // Ожидаем Option-сущности, но чтобы не падать, проверяем:
-            if ($option instanceof Option) {
-                $labelKey = $option->getLabelKey();
-            } else {
-                // На крайний случай — строка-лейбл
-                $labelKey = (string)$option;
+            if (!$option instanceof Option) {
+                // На всякий случай — пропускаем мусор
+                continue;
             }
 
-            $stmtOption->execute([
-                'poll_id'    => $newId,
-                'label_key'  => $labelKey,
-                'sort_order' => $sort++,
-                'created_at' => (new DateTimeImmutable())->format('Y-m-d H:i:s'),
-            ]);
+            $optionData = $option->toArray();
+            // id генерирует БД, poll_id заменяем на актуальный
+            unset($optionData['id']);
+            $optionData['poll_id']    = $newId;
+            $optionData['created_at'] = (new DateTimeImmutable())->format('Y-m-d H:i:s');
+
+            $stmtOption->execute($optionData);
         }
     }
 
@@ -188,7 +174,7 @@ SQL;
         $id = $data['id'] ?? null;
 
         if ($id === null) {
-            // Если вдруг save вызвали без id — считаем это вставкой без options.
+            // Если id нет — считаем, что это новый опрос
             $this->add($poll, []);
             return;
         }
@@ -196,11 +182,11 @@ SQL;
         $columns = array_keys($data);
         $columns = array_filter(
             $columns,
-            static fn (string $col): bool => $col !== 'id'
+            static fn(string $col): bool => $col !== 'id'
         );
 
         $assignments = array_map(
-            static fn (string $col): string => sprintf('%s = :%s', $col, $col),
+            static fn(string $col): string => sprintf('%s = :%s', $col, $col),
             $columns
         );
 
@@ -220,13 +206,11 @@ SQL;
      */
     public function findOptionsByPollId(int $pollId): array
     {
-        // Опираемся на предположение, что есть таблица poll_options.
-        // Если она у тебя называется иначе — только SQL нужно будет подправить.
         $sql = <<<SQL
 SELECT *
-FROM poll_options
+FROM options
 WHERE poll_id = :poll_id
-ORDER BY sort_order ASC, id ASC
+ORDER BY position ASC, id ASC
 SQL;
 
         $stmt = $this->pdo->prepare($sql);
@@ -236,8 +220,6 @@ SQL;
 
         $result = [];
         foreach ($rows as $row) {
-            // Если у Option есть fromArray – супер, используем.
-            // Если нет – потом заменим на конструктор/сетеры.
             $result[] = Option::fromArray($row);
         }
 

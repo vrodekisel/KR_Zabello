@@ -9,7 +9,7 @@ use App\Application\UseCase\CastVote\CastVoteRequest;
 use App\Application\UseCase\GetPollResults\GetPollResultsService;
 use App\Application\UseCase\GetPollResults\GetPollResultsRequest;
 
-class VoteController
+final class VoteController
 {
     private CastVoteService $castVoteService;
     private GetPollResultsService $getPollResultsService;
@@ -35,8 +35,8 @@ class VoteController
 
         $input = $this->getJsonInput();
 
-        $pollId   = isset($input['poll_id']) ? (int)$input['poll_id'] : 0;
-        $optionId = isset($input['option_id']) ? (int)$input['option_id'] : 0;
+        $pollId   = isset($input['poll_id']) ? (int) $input['poll_id'] : 0;
+        $optionId = isset($input['option_id']) ? (int) $input['option_id'] : 0;
 
         if ($pollId <= 0 || $optionId <= 0) {
             $this->jsonError('vote.error.invalid_payload', 400);
@@ -57,7 +57,6 @@ class VoteController
         try {
             $this->castVoteService->execute($request);
         } catch (\DomainException $e) {
-            // Например: уже голосовал, опрос закрыт и т.п.
             $this->jsonError($e->getMessage(), 400);
             return;
         }
@@ -69,21 +68,47 @@ class VoteController
 
     public function results(): void
     {
-        $pollId = isset($_GET['poll_id']) ? (int)$_GET['poll_id'] : 0;
+        $pollId = isset($_GET['poll_id']) ? (int) $_GET['poll_id'] : 0;
         if ($pollId <= 0) {
             $this->jsonError('poll.error.invalid_id', 400);
             return;
         }
 
         $request  = new GetPollResultsRequest($pollId);
-        $response = $this->getPollResultsService->execute($request);
+        $response = $this->getPollResultsService->handle($request);
+
+        $pollDTO     = $response->getPoll();
+        $results     = $response->getResults();      // optionId => count
+        $percentages = $response->getPercentages();  // optionId => percent
+        $total       = $response->getTotalVotes();
+
+        // Формируем удобную структуру для фронта:
+        // [
+        //   { "option_id": 3, "count": 10, "percent": 58.82 },
+        //   { "option_id": 5, "count": 7,  "percent": 41.18 },
+        // ]
+        $optionsData = [];
+        foreach ($results as $optionId => $count) {
+            $optionsData[] = [
+                'option_id' => $optionId,
+                'count'     => $count,
+                'percent'   => $percentages[$optionId] ?? 0.0,
+            ];
+        }
 
         $this->jsonResponse([
             'message' => 'poll.results.success',
             'data'    => [
-                'poll_id'  => $pollId,
-                'options'  => $response->getOptions(),   // массив с id, label_key, голосами, процентами
-                'total'    => $response->getTotalVotes(),
+                'poll'    => [
+                    'id'              => $pollDTO->getId(),
+                    'title_key'       => $pollDTO->getTitleKey(),
+                    'description_key' => $pollDTO->getDescriptionKey(),
+                    'context_type'    => $pollDTO->getContextType(),
+                    'status'          => $pollDTO->getStatus(),
+                    'expires_at'      => $pollDTO->getExpiresAt()?->format(\DateTimeInterface::ATOM),
+                ],
+                'results' => $optionsData,
+                'total'   => $total,
             ],
         ]);
     }
