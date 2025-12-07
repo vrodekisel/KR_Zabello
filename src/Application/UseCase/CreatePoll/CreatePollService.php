@@ -24,8 +24,9 @@ final class CreatePollService
 
     public function handle(CreatePollRequest $request): CreatePollResponse
     {
-        $user = $this->userRepository->findById($request->getCreatorUserId());
+        $creatorId = $request->getCreatorUserId();
 
+        $user = $this->userRepository->findById($creatorId);
         if ($user === null) {
             throw new \RuntimeException('error.user_not_found');
         }
@@ -34,36 +35,37 @@ final class CreatePollService
             throw new \RuntimeException('error.user_banned');
         }
 
-        // Предполагаем наличие фабричного метода в доменной сущности Poll.
-        // Если у тебя другое имя, подстрой под реальную реализацию.
-        if (method_exists(Poll::class, 'create')) {
-            $poll = Poll::create(
-                $request->getTitleKey(),
-                $request->getDescriptionKey(),
-                $request->getContextType(),
-                $request->getOptionLabelKeys(),
-                $request->getExpiresAt(),
-                $request->getCreatorUserId()
-            );
-        } else {
-            // Фолбэк на конструктор, если фабрики нет.
-            $poll = new Poll(
-                null,
-                $request->getTitleKey(),
-                $request->getDescriptionKey(),
-                $request->getContextType(),
-                $request->getOptionLabelKeys(),
-                Poll::STATUS_ACTIVE,
-                new \DateTimeImmutable(),
-                $request->getExpiresAt(),
-                $request->getCreatorUserId()
-            );
-        }
+        $now = new \DateTimeImmutable();
 
-        $savedPoll = $this->pollRepository->save($poll);
+        // В текущей модели Poll у нас есть contentType + contentId.
+        // ContextType из реквеста — это как раз тип контента (map/mod).
+        $contentType = $request->getContextType();
+
+        // Если у реквеста есть getContentId(), используем его.
+        // Если нет — подставляем 0, чтобы не падать.
+        $contentId = method_exists($request, 'getContentId')
+            ? $request->getContentId()
+            : 0;
+
+        $poll = new Poll(
+            null,                          // id
+            $contentType,                  // contentType (map/mod)
+            $contentId,                    // contentId (id карты/мода)
+            $request->getTitleKey(),       // titleKey
+            $request->getDescriptionKey(), // descriptionKey
+            false,                         // isMultipleChoice
+            Poll::STATUS_ACTIVE,           // status
+            $now,                          // startsAt
+            $request->getExpiresAt(),      // endsAt (может быть null)
+            $creatorId,                    // createdByUserId
+            $now                           // createdAt
+        );
+
+        // По интерфейсу PollRepository::save ничего не возвращает.
+        $this->pollRepository->save($poll);
 
         return new CreatePollResponse(
-            PollDTO::fromEntity($savedPoll)
+            PollDTO::fromEntity($poll)
         );
     }
 }

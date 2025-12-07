@@ -21,7 +21,7 @@
     }
   },
   "scripts": {
-    "test": "phpunit"
+  "test": "php phpunit-10.5.60.phar"
   },
   "minimum-stability": "stable"
 }

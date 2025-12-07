@@ -11,9 +11,16 @@ final class PollDTO
     private int $id;
     private string $titleKey;
     private ?string $descriptionKey;
+
+    /**
+     * В прикладном слое это называется "contextType",
+     * но по факту сюда попадает доменный contentType (map|mod).
+     */
     private string $contextType;
+
     private string $status;
     private ?\DateTimeImmutable $expiresAt;
+
     /** @var OptionDTO[] */
     private array $options;
 
@@ -40,19 +47,24 @@ final class PollDTO
 
     public static function fromEntity(Poll $poll): self
     {
-        $optionDTOs = [];
-
-        foreach ($poll->getOptions() as $option) {
-            $optionDTOs[] = OptionDTO::fromEntity($option);
+        $id = $poll->getId();
+        if ($id === null) {
+            // В нормальной работе id должен быть выставлен репозиторием
+            // (в тестах это делает in-memory репозиторий до вызова fromEntity()).
+            throw new \RuntimeException('poll.dto.error.id_is_null');
         }
 
+        // На текущем этапе сущность Poll не хранит в себе список опций,
+        // они живут в репозиториях. Поэтому отдаём пустой список.
+        $optionDTOs = [];
+
         return new self(
-            $poll->getId(),
+            $id,
             $poll->getTitleKey(),
             $poll->getDescriptionKey(),
-            $poll->getContextType(),
+            $poll->getContentType(),   // <-- маппим contentType домена в contextType DTO
             $poll->getStatus(),
-            $poll->getExpiresAt(),
+            $poll->getEndsAt(),        // <-- интерпретируем endsAt как expiresAt
             $optionDTOs
         );
     }
