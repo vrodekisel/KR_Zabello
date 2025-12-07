@@ -14,6 +14,7 @@ final class CreatePollRequest
     private string $titleKey;
     private ?string $descriptionKey;
     private string $contextType;
+    private string $contextKey;
     /** @var string[] */
     private array $optionLabelKeys;
     private ?\DateTimeImmutable $expiresAt;
@@ -26,15 +27,17 @@ final class CreatePollRequest
         string $titleKey,
         ?string $descriptionKey,
         string $contextType,
+        string $contextKey,
         array $optionLabelKeys,
         ?\DateTimeImmutable $expiresAt
     ) {
-        $this->creatorUserId = $creatorUserId;
-        $this->titleKey = $titleKey;
-        $this->descriptionKey = $descriptionKey;
-        $this->contextType = $contextType;
+        $this->creatorUserId   = $creatorUserId;
+        $this->titleKey        = $titleKey;
+        $this->descriptionKey  = $descriptionKey;
+        $this->contextType     = $contextType;
+        $this->contextKey      = $contextKey;
         $this->optionLabelKeys = $optionLabelKeys;
-        $this->expiresAt = $expiresAt;
+        $this->expiresAt       = $expiresAt;
     }
 
     public function getCreatorUserId(): int
@@ -55,6 +58,11 @@ final class CreatePollRequest
     public function getContextType(): string
     {
         return $this->contextType;
+    }
+
+    public function getContextKey(): string
+    {
+        return $this->contextKey;
     }
 
     /**

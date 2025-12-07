@@ -10,11 +10,11 @@ TRUNCATE TABLE users;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
--- Демонстрационные пользователи
+-- Демонстрационные пользователи (пароли: admin, player1, player2)
 INSERT INTO users (id, username, password_hash, is_banned, created_at) VALUES
-(1, 'admin',   '$2b$12$92KzeTYcThP/n3SHUb.Cp.xDcVT5irYR9P7G3DLLrX3AbqmdbaeU2', 0, NOW()),
-(2, 'player1', '$2b$12$Sv9UZe2NHd3uIdmOtCa1xO6jrhoPuvXZ6yETgv1eFMe9JCuiyTNg.', 0, NOW()),
-(3, 'player2', '$2b$12$A2VL3eKKubU1RoUXV5Kx0uoZx8QsMqgHmehRSa3Hpv28n9Yh42/na', 0, NOW());
+(1, 'admin',   '$2b$12$FLmTtE8x8.rG4EuK/YAZ4OzDPbUMD4TFHYAFdEawahMY6QftC9o/K', 0, NOW()),
+(2, 'player1', '$2b$12$YQcnIYvJk5HId7b6l1Ba3Ob6wojeGorLthYKbuPGuMPezBzqwHmUS', 0, NOW()),
+(3, 'player2', '$2b$12$tgMoVj9GKWpBNU5uEqwQF.7dCA/WOiwMIQF.CL2ZIIWuAJETvr6qy', 0, NOW());
 
 -- Опрос 1: голосование карту
 INSERT INTO polls (

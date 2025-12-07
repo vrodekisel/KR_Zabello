@@ -17,7 +17,7 @@ class Poll
 
     private ?int $id;
     private string $contentType;
-    private int $contentId;
+    private ?string $contextKey;
     private string $titleKey;
     private ?string $descriptionKey;
     private bool $isMultipleChoice;
@@ -30,7 +30,7 @@ class Poll
     public function __construct(
         ?int $id,
         string $contentType,
-        int $contentId,
+        ?string $contextKey,
         string $titleKey,
         ?string $descriptionKey,
         bool $isMultipleChoice,
@@ -43,22 +43,22 @@ class Poll
         $this->assertValidContentType($contentType);
         $this->assertValidStatus($status);
 
-        $this->id = $id;
-        $this->contentType = $contentType;
-        $this->contentId = $contentId;
-        $this->titleKey = $titleKey;
-        $this->descriptionKey = $descriptionKey;
+        $this->id               = $id;
+        $this->contentType      = $contentType;
+        $this->contextKey       = $contextKey;
+        $this->titleKey         = $titleKey;
+        $this->descriptionKey   = $descriptionKey;
         $this->isMultipleChoice = $isMultipleChoice;
-        $this->status = $status;
-        $this->startsAt = $startsAt;
-        $this->endsAt = $endsAt;
-        $this->createdByUserId = $createdByUserId;
-        $this->createdAt = $createdAt;
+        $this->status           = $status;
+        $this->startsAt         = $startsAt;
+        $this->endsAt           = $endsAt;
+        $this->createdByUserId  = $createdByUserId;
+        $this->createdAt        = $createdAt;
     }
 
     private function assertValidContentType(string $contentType): void
     {
-        // Всё, никаких исключений. Берём любое значение, что из БД.
+        // Сейчас не валидируем жёстко: берём любое значение из БД.
     }
 
     private function assertValidStatus(string $status): void
@@ -78,7 +78,7 @@ class Poll
      * Мы мапим:
      *  - title/description как ключи локализации titleKey/descriptionKey;
      *  - content_type -> contentType;
-     *  - content_key (строка) -> contentId (int, если возможно, иначе 0);
+     *  - content_key (строка) -> contextKey;
      *  - type: 'single'/'multiple' -> isMultipleChoice;
      *  - is_active -> status (active/closed);
      *  - expires_at -> endsAt;
@@ -97,40 +97,34 @@ class Poll
             ? (string) $row['content_type']
             : self::CONTENT_TYPE_MAP;
 
-        // content_key хранится как строковый ключ; пытаемся привести к int,
-        // если это не число — сохраняем 0 (минимум, не падаем).
-        $contentKeyRaw = $row['content_key'] ?? null;
-        $contentId = 0;
-        if ($contentKeyRaw !== null && $contentKeyRaw !== '') {
-            $contentId = \ctype_digit((string) $contentKeyRaw)
-                ? (int) $contentKeyRaw
-                : 0;
-        }
+        $contextKey = isset($row['content_key']) && $row['content_key'] !== ''
+            ? (string) $row['content_key']
+            : null;
 
-        $typeRaw = $row['type'] ?? 'single';
+        $typeRaw          = $row['type'] ?? 'single';
         $isMultipleChoice = ($typeRaw === 'multiple');
 
         $isActiveRaw = isset($row['is_active']) ? (int) $row['is_active'] : 0;
-        $status = $isActiveRaw === 1 ? self::STATUS_ACTIVE : self::STATUS_CLOSED;
+        $status      = $isActiveRaw === 1 ? self::STATUS_ACTIVE : self::STATUS_CLOSED;
 
         $startsAt = null;
 
         $endsAtRaw = $row['expires_at'] ?? null;
-        $endsAt = $endsAtRaw
+        $endsAt    = $endsAtRaw
             ? new DateTimeImmutable((string) $endsAtRaw)
             : null;
 
         $createdByUserId = isset($row['created_by']) ? (int) $row['created_by'] : 0;
 
         $createdAtRaw = $row['created_at'] ?? null;
-        $createdAt = $createdAtRaw
+        $createdAt    = $createdAtRaw
             ? new DateTimeImmutable((string) $createdAtRaw)
             : new DateTimeImmutable('now');
 
         return new self(
             $id,
             $contentType,
-            $contentId,
+            $contextKey,
             $titleKey,
             $descriptionKey,
             $isMultipleChoice,
@@ -144,17 +138,6 @@ class Poll
 
     /**
      * Представление Poll в виде массива для INSERT/UPDATE в polls.
-     *
-     * Обратное отображение к fromArray:
-     *  - titleKey -> title
-     *  - descriptionKey -> description
-     *  - contentType -> content_type
-     *  - contentId -> content_key (строка)
-     *  - isMultipleChoice -> type ('single'|'multiple')
-     *  - status -> is_active (1 только для active)
-     *  - endsAt -> expires_at
-     *  - createdByUserId -> created_by
-     *  - createdAt -> created_at
      */
     public function toArray(): array
     {
@@ -165,7 +148,7 @@ class Poll
             'type'         => $this->isMultipleChoice ? 'multiple' : 'single',
             'is_active'    => $this->status === self::STATUS_ACTIVE ? 1 : 0,
             'content_type' => $this->contentType,
-            'content_key'  => (string) $this->contentId,
+            'content_key'  => $this->contextKey,
             'created_by'   => $this->createdByUserId,
             'created_at'   => $this->createdAt->format('Y-m-d H:i:s'),
             'expires_at'   => $this->endsAt?->format('Y-m-d H:i:s'),
@@ -182,9 +165,17 @@ class Poll
         return $this->contentType;
     }
 
+    /**
+     * Старый «contentId» можно получить, если contextKey — число.
+     * Нужен только для совместимости.
+     */
     public function getContentId(): int
     {
-        return $this->contentId;
+        if ($this->contextKey !== null && ctype_digit($this->contextKey)) {
+            return (int) $this->contextKey;
+        }
+
+        return 0;
     }
 
     public function getTitleKey(): string
@@ -252,5 +243,23 @@ class Poll
     public function activate(): void
     {
         $this->status = self::STATUS_ACTIVE;
+    }
+
+    // -------- Совместимость с админкой / фронтом --------
+
+    /**
+     * Для кода, который ожидает contextType — просто contentType.
+     */
+    public function getContextType(): string
+    {
+        return $this->contentType;
+    }
+
+    /**
+     * Нормальный геттер для contextKey (content_key в БД).
+     */
+    public function getContextKey(): ?string
+    {
+        return $this->contextKey;
     }
 }
