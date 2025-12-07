@@ -43,6 +43,56 @@ class User
         }
     }
 
+    /**
+     * Сборка сущности из строки таблицы users.
+     *
+     * Ожидаемые ключи: id, username, password_hash, is_banned, created_at, (опционально) role.
+     */
+    public static function fromArray(array $row): self
+    {
+        $id = isset($row['id']) ? (int) $row['id'] : null;
+
+        $username     = (string) ($row['username'] ?? '');
+        $passwordHash = (string) ($row['password_hash'] ?? '');
+
+        // В схеме пока нет колонки role, поэтому по умолчанию считаем, что это обычный игрок.
+        $role = isset($row['role']) && $row['role'] !== ''
+            ? (string) $row['role']
+            : self::ROLE_PLAYER;
+
+        $isBanned = isset($row['is_banned']) ? ((int) $row['is_banned'] === 1) : false;
+
+        $createdAtRaw = $row['created_at'] ?? null;
+        $createdAt = $createdAtRaw
+            ? new DateTimeImmutable((string) $createdAtRaw)
+            : new DateTimeImmutable('now');
+
+        return new self(
+            $id,
+            $username,
+            $passwordHash,
+            $role,
+            $isBanned,
+            $createdAt
+        );
+    }
+
+    /**
+     * Представление сущности в виде массива для INSERT/UPDATE в таблицу users.
+     */
+    public function toArray(): array
+    {
+        return [
+            'id'            => $this->id,
+            'username'      => $this->username,
+            'password_hash' => $this->passwordHash,
+            // Колонки role может не быть — репозиторий сам решит, использовать её или нет.
+            'role'          => $this->role,
+            'is_banned'     => $this->isBanned ? 1 : 0,
+            'created_at'    => $this->createdAt->format('Y-m-d H:i:s'),
+        ];
+    }
+
     public function getId(): ?int
     {
         return $this->id;

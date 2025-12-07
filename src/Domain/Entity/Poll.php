@@ -70,6 +70,110 @@ class Poll
         }
     }
 
+    /**
+     * Сборка Poll из строки таблицы polls.
+     *
+     * Схема polls (schema.sql):
+     *  id, title, description, type, is_active, content_type, content_key,
+     *  created_by, created_at, expires_at
+     *
+     * Мы мапим:
+     *  - title/description как ключи локализации titleKey/descriptionKey;
+     *  - content_type -> contentType;
+     *  - content_key (строка) -> contentId (int, если возможно, иначе 0);
+     *  - type: 'single'/'multiple' -> isMultipleChoice;
+     *  - is_active -> status (active/closed);
+     *  - expires_at -> endsAt;
+     *  - startsAt в текущей схеме нет — оставляем null.
+     */
+    public static function fromArray(array $row): self
+    {
+        $id = isset($row['id']) ? (int) $row['id'] : null;
+
+        $titleKey       = (string) ($row['title'] ?? '');
+        $descriptionKey = isset($row['description'])
+            ? (string) $row['description']
+            : null;
+
+        $contentType = isset($row['content_type']) && $row['content_type'] !== ''
+            ? (string) $row['content_type']
+            : self::CONTENT_TYPE_MAP;
+
+        // content_key хранится как строковый ключ; пытаемся привести к int,
+        // если это не число — сохраняем 0 (минимум, не падаем).
+        $contentKeyRaw = $row['content_key'] ?? null;
+        $contentId = 0;
+        if ($contentKeyRaw !== null && $contentKeyRaw !== '') {
+            $contentId = \ctype_digit((string) $contentKeyRaw)
+                ? (int) $contentKeyRaw
+                : 0;
+        }
+
+        $typeRaw = $row['type'] ?? 'single';
+        $isMultipleChoice = ($typeRaw === 'multiple');
+
+        $isActiveRaw = isset($row['is_active']) ? (int) $row['is_active'] : 0;
+        $status = $isActiveRaw === 1 ? self::STATUS_ACTIVE : self::STATUS_CLOSED;
+
+        $startsAt = null;
+
+        $endsAtRaw = $row['expires_at'] ?? null;
+        $endsAt = $endsAtRaw
+            ? new DateTimeImmutable((string) $endsAtRaw)
+            : null;
+
+        $createdByUserId = isset($row['created_by']) ? (int) $row['created_by'] : 0;
+
+        $createdAtRaw = $row['created_at'] ?? null;
+        $createdAt = $createdAtRaw
+            ? new DateTimeImmutable((string) $createdAtRaw)
+            : new DateTimeImmutable('now');
+
+        return new self(
+            $id,
+            $contentType,
+            $contentId,
+            $titleKey,
+            $descriptionKey,
+            $isMultipleChoice,
+            $status,
+            $startsAt,
+            $endsAt,
+            $createdByUserId,
+            $createdAt
+        );
+    }
+
+    /**
+     * Представление Poll в виде массива для INSERT/UPDATE в polls.
+     *
+     * Обратное отображение к fromArray:
+     *  - titleKey -> title
+     *  - descriptionKey -> description
+     *  - contentType -> content_type
+     *  - contentId -> content_key (строка)
+     *  - isMultipleChoice -> type ('single'|'multiple')
+     *  - status -> is_active (1 только для active)
+     *  - endsAt -> expires_at
+     *  - createdByUserId -> created_by
+     *  - createdAt -> created_at
+     */
+    public function toArray(): array
+    {
+        return [
+            'id'           => $this->id,
+            'title'        => $this->titleKey,
+            'description'  => $this->descriptionKey,
+            'type'         => $this->isMultipleChoice ? 'multiple' : 'single',
+            'is_active'    => $this->status === self::STATUS_ACTIVE ? 1 : 0,
+            'content_type' => $this->contentType,
+            'content_key'  => (string) $this->contentId,
+            'created_by'   => $this->createdByUserId,
+            'created_at'   => $this->createdAt->format('Y-m-d H:i:s'),
+            'expires_at'   => $this->endsAt?->format('Y-m-d H:i:s'),
+        ];
+    }
+
     public function getId(): ?int
     {
         return $this->id;
