@@ -26,46 +26,52 @@ final class VoteController
     }
 
     public function cast(): void
-    {
-        $userId = $this->authController->getUserIdFromToken();
-        if ($userId === null) {
-            $this->jsonError('auth.error.token_required', 401);
-            return;
-        }
-
-        $input = $this->getJsonInput();
-
-        $pollId   = isset($input['poll_id']) ? (int) $input['poll_id'] : 0;
-        $optionId = isset($input['option_id']) ? (int) $input['option_id'] : 0;
-
-        if ($pollId <= 0 || $optionId <= 0) {
-            $this->jsonError('vote.error.invalid_payload', 400);
-            return;
-        }
-
-        $ip        = $_SERVER['REMOTE_ADDR'] ?? '';
-        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
-
-        $request = new CastVoteRequest(
-            $pollId,
-            $optionId,
-            $userId,
-            $ip,
-            $userAgent
-        );
-
-        try {
-            // 🔧 Исправление: вызываем реальный метод handle(), а не несуществующий execute()
-            $this->castVoteService->handle($request);
-        } catch (\DomainException $e) {
-            $this->jsonError($e->getMessage(), 400);
-            return;
-        }
-
-        $this->jsonResponse([
-            'message' => 'vote.cast.success',
-        ], 201);
+{
+    $userId = $this->authController->getUserIdFromToken();
+    if ($userId === null) {
+        $this->jsonError('auth.error.token_required', 401);
+        return;
     }
+
+    // 1) Пытаемся прочитать JSON
+    $input = $this->getJsonInput();
+
+    // 2) Если JSON-полей нет, пробуем обычную форму (web-страница)
+    if (empty($input)) {
+        $input = $_POST;
+    }
+
+    $pollId   = isset($input['poll_id']) ? (int) $input['poll_id'] : 0;
+    $optionId = isset($input['option_id']) ? (int) $input['option_id'] : 0;
+
+    if ($pollId <= 0 || $optionId <= 0) {
+        $this->jsonError('vote.error.invalid_payload', 400);
+        return;
+    }
+
+    $ip        = $_SERVER['REMOTE_ADDR'] ?? '';
+    $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+
+    $request = new CastVoteRequest(
+        $pollId,
+        $optionId,
+        $userId,
+        $ip,
+        $userAgent
+    );
+
+    try {
+        $this->castVoteService->handle($request);
+    } catch (\DomainException $e) {
+        $this->jsonError($e->getMessage(), 400);
+        return;
+    }
+
+    $this->jsonResponse([
+        'message' => 'vote.cast.success',
+    ], 201);
+}
+
 
     public function results(): void
     {

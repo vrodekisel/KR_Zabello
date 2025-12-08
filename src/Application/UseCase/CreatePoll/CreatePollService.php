@@ -9,7 +9,7 @@ use App\Domain\Entity\Poll;
 use App\Domain\Entity\User;
 use App\Domain\Repository\PollRepository;
 use App\Domain\Repository\UserRepository;
-
+use App\Domain\Entity\Option;
 final class CreatePollService
 {
     private PollRepository $pollRepository;
@@ -40,6 +40,7 @@ final class CreatePollService
         $contentType = $request->getContextType();
         $contextKey  = $request->getContextKey();
 
+        // Сам опрос
         $poll = new Poll(
             null,                          // id
             $contentType,                  // contentType (MAP/MOD/...)
@@ -54,13 +55,35 @@ final class CreatePollService
             $now                           // createdAt
         );
 
-        // По интерфейсу PollRepository::save ничего не возвращает.
-        $this->pollRepository->save($poll);
+        // Варианты ответа
+        $options          = [];
+        $optionLabelKeys  = $request->getOptionLabelKeys();
+        $position         = 1;
 
+        foreach ($optionLabelKeys as $labelKey) {
+            $labelKey = trim((string) $labelKey);
+            if ($labelKey === '') {
+                continue;
+            }
+
+            $options[] = new Option(
+                null,    // id — выставит БД
+                0,       // poll_id временно, репозиторий сам подставит $newId
+                $labelKey, // label (ключ локализации)
+                $labelKey, // value — можно сделать таким же, нам он сейчас не критичен
+                $position++,
+                true
+            );
+        }
+
+        // ВАЖНО: создаём опрос и опции одним вызовом
+        $this->pollRepository->add($poll, $options);
+        
         return new CreatePollResponse(
             PollDTO::fromEntity($poll)
         );
     }
+
 
     /**
      * Упрощённый фасад для контроллеров: принимает доменного пользователя

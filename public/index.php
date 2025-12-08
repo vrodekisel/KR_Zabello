@@ -113,10 +113,6 @@ setcookie('lang', $locale, [
 $langPath   = __DIR__ . '/../lang';
 $translator = new Translator($locale, $fallbackLocale, $langPath);
 
-// ------------------------------
-// Инфраструктура: БД и логгер
-// ------------------------------
-
 $connection = new MySQLConnection($dbConfig);
 
 $userRepository = new MySQLUserRepository($connection);
@@ -125,10 +121,6 @@ $voteRepository = new MySQLVoteRepository($connection);
 
 $logFilePath = __DIR__ . '/../storage/logs/app.log';
 $logger      = new FileLogger($logFilePath);
-
-// ------------------------------
-// Прикладной слой: UseCase'ы
-// ------------------------------
 
 $createPollService = new CreatePollService(
     $pollRepository,
@@ -149,15 +141,8 @@ $getPollResultsService = new GetPollResultsService(
     $voteRepository
 );
 
-// ------------------------------
-// View-слой
-// ------------------------------
-
 $view = new View($translator, $availableLocales);
-
-// ------------------------------
-// HTTP-слой: JSON API контроллеры
-// ------------------------------
+------------------------------
 
 $authController = new AuthController(
     $userRepository,
@@ -242,7 +227,6 @@ $routes = [
         'handler' => [$pollController, 'create'],
     ],
 
-    // -------- JSON API: голосование и результаты --------
     [
         'method'  => 'POST',
         'path'    => '/vote',
@@ -254,7 +238,6 @@ $routes = [
         'handler' => [$voteController, 'results'],
     ],
 
-    // -------- HTML фронт: список опросов --------
     [
         'method'  => 'GET',
         'path'    => '/',
@@ -294,8 +277,6 @@ $routes = [
         'path'    => '/web/logout',
         'handler' => [$webAuthController, 'logout'],
     ],
-
-    // -------- HTML фронт: админка списка и создания опросов --------
     [
         'method'  => 'GET',
         'path'    => '/web/admin/polls',
@@ -312,17 +293,11 @@ $routes = [
         'handler' => [$webAdminPollController, 'handleCreate'],
     ],
 
-    // -------- HTML фронт: детали опроса в админке --------
     [
         'method'  => 'GET',
         'path'    => '/web/admin/poll',
         'handler' => [$webAdminPollDetailsController, 'show'],
     ],
 ];
-
-// ------------------------------
-// Запуск роутера
-// ------------------------------
-
 $router = new Router($routes);
 $router->dispatch();

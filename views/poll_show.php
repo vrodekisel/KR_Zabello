@@ -95,22 +95,23 @@ use App\Localization\Translator;
             </div>
 
             <?php foreach ($optionsView as $option): ?>
-                <div class="result-row">
-                    <div class="result-label">
+                <li class="option-item">
+                    <label>
+                        <?php if ($hasVoted): ?>
+                            <input type="radio" disabled>
+                        <?php else: ?>
+                            <input
+                                type="radio"
+                                name="option_id"
+                                value="<?= (int) $option['id'] ?>"
+                                required
+                            >
+                        <?php endif; ?>
                         <?= htmlspecialchars($option['label'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>
-                    </div>
-                    <div class="result-bar">
-                        <div class="result-bar-inner"
-                             style="width: <?= max(0, min(100, (float) $option['percent'])) ?>%;">
-                        </div>
-                    </div>
-                    <div class="result-meta">
-                        <?= htmlspecialchars($votesLabel, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>
-                        : <?= (int) $option['count'] ?>
-                        · <?= number_format((float) $option['percent'], 1) ?>%
-                    </div>
-                </div>
+                    </label>
+                </li>
             <?php endforeach; ?>
+
 
             <div class="result-meta">
                 <?= htmlspecialchars($totalVotesLabel, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>

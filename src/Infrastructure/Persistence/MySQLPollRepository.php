@@ -24,19 +24,12 @@ final class MySQLPollRepository implements PollRepository
         $sql = 'SELECT * FROM polls WHERE id = :id LIMIT 1';
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute(['id' => $id]);
-
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
         if ($row === false) {
             return null;
         }
-
         return Poll::fromArray($row);
     }
-
-    /**
-     * Найти активный опрос по id с учётом флага is_active и времени жизни.
-     */
     public function findActiveById(int $id, DateTimeImmutable $now): ?Poll
     {
         $sql = <<<SQL
@@ -47,19 +40,15 @@ WHERE id = :id
   AND (expires_at IS NULL OR expires_at > :now)
 LIMIT 1
 SQL;
-
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([
             'id'  => $id,
             'now' => $now->format('Y-m-d H:i:s'),
         ]);
-
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
         if ($row === false) {
             return null;
         }
-
         return Poll::fromArray($row);
     }
 

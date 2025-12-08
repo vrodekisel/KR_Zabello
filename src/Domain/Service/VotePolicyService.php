@@ -36,28 +36,24 @@ class VotePolicyService
                 'reasonCode' => 'error.user_banned',
             ];
         }
-
         if (!$poll->isActive($now)) {
             return [
                 'allowed'    => false,
                 'reasonCode' => 'error.poll_not_active',
             ];
         }
-
         if ($existingVote !== null) {
             return [
                 'allowed'    => false,
                 'reasonCode' => 'error.already_voted',
             ];
         }
-
         if ($recentVotesCount >= $this->maxVotesPerInterval) {
             return [
                 'allowed'    => false,
                 'reasonCode' => 'error.too_many_votes',
             ];
         }
-
         return [
             'allowed'    => true,
             'reasonCode' => null,

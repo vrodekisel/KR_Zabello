@@ -26,9 +26,7 @@ final class VotePolicyServiceTest extends TestCase
             1,
             new \DateTimeImmutable('2024-12-01T00:00:00Z')
         );
-
         $existingVotes = [];
-
         $service->assertCanVote(
             $poll,
             10,
@@ -36,10 +34,8 @@ final class VotePolicyServiceTest extends TestCase
             '127.0.0.1',
             'UserAgent/1.0'
         );
-
         $this->assertTrue(true);
     }
-
     public function testUserCannotVoteTwiceInSamePoll(): void
     {
         $service = new VotePolicyService();

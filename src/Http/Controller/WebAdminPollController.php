@@ -104,25 +104,16 @@ final class WebAdminPollController
         exit;
     }
 
-    /**
-     * GET /web/admin/polls
-     * Список опросов (для техничного просмотра).
-     */
     public function listPolls(): void
     {
         header('Content-Type: text/html; charset=utf-8');
-
         $this->requireAdmin('/web/admin/polls');
-
         $now = new \DateTimeImmutable();
-
-        // используем те же демо-контексты, что и пользовательский список
         $contexts = [
             ['MAP', 'next_map'],
             ['MOD', 'better_grass'],
             ['MOD', 'popular_mod'],
         ];
-
         /** @var Poll[] $polls */
         $polls = [];
         foreach ($contexts as [$type, $key]) {
@@ -131,7 +122,6 @@ final class WebAdminPollController
                 $polls[] = $poll;
             }
         }
-
         $rows = array_map(
             static function (Poll $poll) use ($now): array {
                 $createdAt = $poll->getCreatedAt();
@@ -152,7 +142,6 @@ final class WebAdminPollController
             },
             $polls
         );
-
         $this->view->render('admin_polls_list', [
             'pageTitle'       => $this->t('ui.web.admin.polls.list.title'),
             'heading'         => $this->t('ui.web.admin.polls.list.heading'),
@@ -161,10 +150,6 @@ final class WebAdminPollController
         ]);
     }
 
-    /**
-     * GET /web/admin/polls/create
-     * Показ формы создания опроса.
-     */
     public function showCreateForm(): void
     {
         header('Content-Type: text/html; charset=utf-8');
@@ -191,14 +176,6 @@ final class WebAdminPollController
         ]);
     }
 
-    /**
-     * POST /web/admin/polls/create
-     * Обработка формы создания опроса.
-     */
-        /**
-     * POST /web/admin/polls/create
-     * Обработка формы создания опроса.
-     */
     public function handleCreate(): void
     {
         $user = $this->requireAdmin('/web/admin/polls/create');

@@ -153,7 +153,8 @@ final class WebPollController
         $pollTitle       = $this->t($titleKey);
         $pollDescription = $descriptionKey !== null ? $this->t($descriptionKey) : null;
 
-        $options = method_exists($poll, 'getOptions') ? $poll->getOptions() : [];
+        $options = $this->pollRepository->findOptionsByPollId($pollId);
+
 
         $optionsView = [];
         $totalVotes  = 0;

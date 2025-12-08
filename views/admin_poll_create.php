@@ -22,12 +22,9 @@ use App\Localization\Translator;
     <title><?= htmlspecialchars($pageTitle, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></title>
     <style>
         body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; padding: 24px; background: #111827; color: #E5E7EB; }
-        .container { max-width: 640px; margin: 0 auto; }
+        .container { max-width: 960px; margin: 0 auto; }
         .card { background: #1F2937; border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 10px 20px rgba(0,0,0,0.4); }
-        .card-title { font-size: 20px; margin-bottom: 16px; }
-        .form-group { margin-bottom: 12px; }
-        label { font-size: 14px; display: block; margin-bottom: 4px; }
-        input, select { width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #374151; background: #111827; color: #E5E7EB; }
+        .card-title { font-size: 20px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
         .btn { display: inline-block; padding: 8px 16px; border-radius: 999px; border: none; cursor: pointer; font-size: 14px; text-decoration: none; }
         .btn-primary { background: #2563EB; color: #F9FAFB; }
         .btn-primary:hover { background: #1D4ED8; }
@@ -35,11 +32,16 @@ use App\Localization\Translator;
         .btn-secondary:hover { background: #111827; }
         .btn-small { font-size: 13px; padding: 4px 10px; }
         .back-link { margin-bottom: 12px; }
-        .alert { padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; font-size: 14px; }
-        .alert-error { background: #7F1D1D; color: #FECACA; }
-        .helper { font-size: 12px; color: #9CA3AF; margin-top: 8px; }
-        .options-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { padding: 8px 6px; text-align: left; border-bottom: 1px solid #374151; }
+        th { font-weight: 600; color: #D1D5DB; }
+        tr:last-child td { border-bottom: none; }
+        .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; }
+        .tag-active { background: #065F46; color: #A7F3D0; }
+        .tag-inactive { background: #4B5563; color: #E5E7EB; }
+        .actions { display: flex; gap: 6px; }
     </style>
+
 </head>
 <body>
 <div class="container">

@@ -12,44 +12,24 @@ use App\Domain\Entity\Poll;
 use App\Domain\Entity\Option;
 use App\Domain\Entity\User;
 
-/**
- * Юнит-тест для CreatePollService: проверяем,
- * что при корректном запросе опрос сохраняется в репозитории
- * и возвращается корректный CreatePollResponse.
- */
 final class CreatePollServiceTest extends TestCase
 {
     public function testCreatePollPersistsPollAndReturnsResponse(): void
     {
         $pollRepository = new InMemoryPollRepositoryForCreatePollService();
-
-        // Мокаем репозиторий пользователей, чтобы CreatePollService не падал
         $userRepository = $this->createMock(UserRepository::class);
-
         $user = $this->createMock(User::class);
         if (method_exists($user, 'isBanned')) {
             $user->method('isBanned')->willReturn(false);
         }
-
         $userRepository
             ->method('findById')
             ->willReturn($user);
-
         $service = new CreatePollService($pollRepository, $userRepository);
-
-        // __construct(
-        //     int $creatorUserId,
-        //     string $titleKey,
-        //     ?string $descriptionKey,
-        //     string $contextType,
-        //     array $optionLabelKeys,
-        //     ?\DateTimeImmutable $expiresAt
-        // )
         $request = new CreatePollRequest(
             1,
             'poll.title.next_map_test',
             'poll.description.next_map_test',
-            // ⚠ сюда идёт ВНУТРЕННИЙ contentType, а не ключ локализации
             Poll::CONTENT_TYPE_MAP,
             [
                 'option.label.map.ancient_forest',
@@ -57,18 +37,12 @@ final class CreatePollServiceTest extends TestCase
             ],
             null
         );
-
         $response = $service->handle($request);
-
         $this->assertInstanceOf(CreatePollResponse::class, $response);
-
-        // Достаём сохранённый Poll напрямую из фейкового репозитория
         $allPolls = $pollRepository->getAll();
         $this->assertCount(1, $allPolls);
-
         /** @var Poll $savedPoll */
         $savedPoll = $allPolls[0];
-
         $this->assertSame('poll.title.next_map_test', $savedPoll->getTitleKey());
         $this->assertSame('poll.description.next_map_test', $savedPoll->getDescriptionKey());
         $this->assertSame(Poll::CONTENT_TYPE_MAP, $savedPoll->getContentType());

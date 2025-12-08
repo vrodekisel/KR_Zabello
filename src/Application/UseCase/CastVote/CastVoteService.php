@@ -31,35 +31,27 @@ final class CastVoteService
 
     public function handle(CastVoteRequest $request): CastVoteResponse
     {
-        // 1. Пользователь
         $user = $this->userRepository->findById($request->getUserId());
         if ($user === null) {
             throw new \RuntimeException('error.user_not_found');
         }
-
-        // 2. Опрос
         $poll = $this->pollRepository->findById($request->getPollId());
         if ($poll === null) {
             throw new \RuntimeException('error.poll_not_found');
         }
-
-        // 3. Ищем вариант ответа через репозиторий опросов, а не через Poll::findOptionById()
         $option = null;
         if (method_exists($this->pollRepository, 'findOptionsByPollId')) {
             $options = $this->pollRepository->findOptionsByPollId($poll->getId());
             foreach ($options as $opt) {
-                // ожидаем, что у Option есть getId()
                 if (method_exists($opt, 'getId') && $opt->getId() === $request->getOptionId()) {
                     $option = $opt;
                     break;
                 }
             }
         }
-
         if ($option === null) {
             throw new \RuntimeException('error.option_not_in_poll');
         }
-
        $existingVote = null;
         if (method_exists($this->voteRepository, 'findByUserAndPoll')) {
             $existingVote = $this->voteRepository->findByUserAndPoll(
@@ -67,11 +59,7 @@ final class CastVoteService
                 $request->getPollId()
             );
         }
-
-        // VotePolicyService ожидает массив голосов
         $existingVotes = $existingVote === null ? [] : [$existingVote];
-
-        // Передаём все 5 аргументов: опрос, user_id, массив голосов, IP и User-Agent
         $this->votePolicyService->assertCanVote(
             $poll,
             $user->getId(),
