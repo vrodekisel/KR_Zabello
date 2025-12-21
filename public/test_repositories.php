@@ -10,7 +10,6 @@ use App\Infrastructure\Logging\FileLogger;
 
 require __DIR__ . '/../vendor/autoload.php';
 
-// загружаем конфиг БД
 $dbConfigPath = __DIR__ . '/../config/db.php';
 
 $connection = MySQLConnection::fromConfigFile($dbConfigPath);
@@ -20,7 +19,6 @@ $pollRepo = new MySQLPollRepository($connection);
 $voteRepo = new MySQLVoteRepository($connection);
 $logger   = new FileLogger();
 
-// просто тестовые вызовы
 try {
     $testUser = $userRepo->findById(1);
     $testPoll = $pollRepo->findById(1);

@@ -18,20 +18,17 @@ return [
     'ui.poll.error.invalid_id' => 'Некорректный идентификатор опроса.',
     'ui.poll.error.not_found' => 'Опрос не найден.',
 
-        // --- Header / navigation ---
     'ui.web.header.language'      => 'Язык',
     'ui.web.header.login'         => 'Войти',
     'ui.web.header.logout'        => 'Выйти',
     'ui.web.header.logged_in_as'  => 'Вы вошли как',
 
-    // --- Polls list page ---
     'ui.web.polls.title'          => 'Опросы по внутриигровому контенту',
     'ui.web.polls.empty'          => 'Сейчас нет активных демонстрационных опросов.',
     'ui.web.polls.status.active'  => 'Активный опрос',
     'ui.web.polls.status.closed'  => 'Закрытый опрос',
     'ui.web.polls.button.open'    => 'Открыть опрос',
 
-    // --- Web login ---
     'ui.web.login.title'          => 'Вход в демо-сайт голосования ArenaX',
     'ui.web.login.username'       => 'Имя пользователя',
     'ui.web.login.password'       => 'Пароль',
@@ -40,7 +37,6 @@ return [
     'ui.web.login.error_banned'   => 'Ваш аккаунт заблокирован.',
     'ui.web.login.helper_demousers' => 'Используйте демонстрационные аккаунты из seed-данных (например, admin, player1, player2).',
 
-        // --- Демо-опросы: заголовки и описания ---
     'poll.next_map.title'            => 'Следующая карта в ArenaX',
     'poll.next_map.description'      => 'Выберите карту, которая должна быть сыграна в следующем матче.',
 

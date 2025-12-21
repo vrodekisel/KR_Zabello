@@ -12,11 +12,7 @@ use App\Domain\Repository\UserRepository;
 use App\Localization\Translator;
 use App\View\View;
 
-/**
- * Админский фронт: создание и просмотр опросов через HTML-страницы.
- *
- * Это демо-админка сайта, не внутриигровой API.
- */
+
 final class WebAdminPollController
 {
     private UserRepository $userRepository;
@@ -44,17 +40,6 @@ final class WebAdminPollController
         return $this->translator->trans($key);
     }
 
-    /**
-     * Проверяем, что пользователь залогинен и имеет права админа.
-     *
-     * Для простоты:
-     *   - пользователь с id = 1 считается супер-админом (если не забанен);
-     *   - если есть роли и ROLE_ADMIN — проверяем по роли;
-     *   - иначе доступ запрещён.
-     *
-     * Если не залогинен → редирект на /web/login с redirect.
-     * Если нет прав → 403 и текст ошибки.
-     */
     private function requireAdmin(string $redirectAfterLogin = '/web/admin/polls'): User
     {
         if (session_status() !== PHP_SESSION_ACTIVE) {
@@ -81,12 +66,10 @@ final class WebAdminPollController
             exit;
         }
 
-        // --- Супер-админ: id = 1 ---
         if ($user->getId() === 1 && !$user->isBanned()) {
             return $user;
         }
 
-        // --- Проверка по роли, если она есть ---
         if (method_exists($user, 'getRole') && defined(User::class . '::ROLE_ADMIN')) {
             if ($user->getRole() !== User::ROLE_ADMIN || $user->isBanned()) {
                 http_response_code(403);
@@ -211,7 +194,6 @@ final class WebAdminPollController
         try {
             $poll = $this->createPollService->createPoll($user, $payload);
         } catch (\Throwable $e) {
-            // временная отладка: логируем и показываем причину
             error_log('ADMIN_CREATE_POLL_ERROR: ' . $e->getMessage());
 
             http_response_code(500);

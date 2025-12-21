@@ -4,10 +4,6 @@ declare(strict_types=1);
 
 namespace App\Localization;
 
-/**
- * Простейший переводчик, который грузит lang/{locale}.php
- * и умеет подставлять плейсхолдеры {name}.
- */
 final class Translator
 {
     private string $locale;

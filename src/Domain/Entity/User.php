@@ -43,11 +43,6 @@ class User
         }
     }
 
-    /**
-     * Сборка сущности из строки таблицы users.
-     *
-     * Ожидаемые ключи: id, username, password_hash, is_banned, created_at, (опционально) role.
-     */
     public static function fromArray(array $row): self
     {
         $id = isset($row['id']) ? (int) $row['id'] : null;
@@ -55,7 +50,6 @@ class User
         $username     = (string) ($row['username'] ?? '');
         $passwordHash = (string) ($row['password_hash'] ?? '');
 
-        // В схеме пока нет колонки role, поэтому по умолчанию считаем, что это обычный игрок.
         $role = isset($row['role']) && $row['role'] !== ''
             ? (string) $row['role']
             : self::ROLE_PLAYER;
@@ -77,16 +71,13 @@ class User
         );
     }
 
-    /**
-     * Представление сущности в виде массива для INSERT/UPDATE в таблицу users.
-     */
+
     public function toArray(): array
     {
         return [
             'id'            => $this->id,
             'username'      => $this->username,
             'password_hash' => $this->passwordHash,
-            // Колонки role может не быть — репозиторий сам решит, использовать её или нет.
             'role'          => $this->role,
             'is_banned'     => $this->isBanned ? 1 : 0,
             'created_at'    => $this->createdAt->format('Y-m-d H:i:s'),

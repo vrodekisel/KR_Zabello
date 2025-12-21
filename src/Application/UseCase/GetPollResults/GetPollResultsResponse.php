@@ -11,19 +11,16 @@ final class GetPollResultsResponse
     private PollDTO $poll;
 
     /**
-     * Сырые результаты: optionId => totalVotes.
      *
      * @var array<int,int>
      */
     private array $results;
 
     /**
-     * Общее количество голосов по опросу.
      */
     private int $totalVotes;
 
     /**
-     * Проценты по каждому варианту: optionId => percent (0–100).
      *
      * @var array<int,float>
      */
@@ -42,7 +39,6 @@ final class GetPollResultsResponse
         $percentages = [];
         if ($this->totalVotes > 0) {
             foreach ($results as $optionId => $count) {
-                // round до двух знаков после запятой, чтобы было аккуратно
                 $percentages[$optionId] = round(($count / $this->totalVotes) * 100, 2);
             }
         }
@@ -56,7 +52,6 @@ final class GetPollResultsResponse
     }
 
     /**
-     * Сырые результаты: optionId => totalVotes.
      *
      * @return array<int,int>
      */
@@ -66,7 +61,6 @@ final class GetPollResultsResponse
     }
 
     /**
-     * Общее количество голосов.
      */
     public function getTotalVotes(): int
     {
@@ -74,7 +68,6 @@ final class GetPollResultsResponse
     }
 
     /**
-     * Проценты по каждому варианту: optionId => percent (0–100).
      *
      * @return array<int,float>
      */

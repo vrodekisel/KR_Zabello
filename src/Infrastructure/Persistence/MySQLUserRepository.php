@@ -47,16 +47,10 @@ class MySQLUserRepository implements UserRepository
         return User::fromArray($row);
     }
 
-    /**
-     * Добавление нового пользователя (INSERT).
-     */
     public function add(User $user): void
     {
         $data = $user->toArray();
 
-        // Эти поля не отправляем в INSERT:
-        // id — автоинкремент в БД
-        // role — колонки в таблице нет, это чисто PHP-поле
         unset(
             $data['id'],
             $data['role']
@@ -78,15 +72,10 @@ class MySQLUserRepository implements UserRepository
         $stmt->execute($data);
     }
 
-    /**
-     * Сохранение существующего пользователя (UPDATE).
-     * Если id нет — считаем, что это новый пользователь и вызываем add().
-     */
     public function save(User $user): void
     {
         $data = $user->toArray();
 
-        // В UPDATE тоже не трогаем поле role — его нет в таблице
         unset($data['role']);
 
         $id = $data['id'] ?? null;
@@ -96,7 +85,6 @@ class MySQLUserRepository implements UserRepository
             return;
         }
 
-        // Обновляем все поля, кроме id
         $columns = array_keys($data);
         $columns = array_filter(
             $columns,

@@ -43,11 +43,8 @@ class MySQLConnection
                 PDO::ATTR_EMULATE_PREPARES   => false,
             ]);
         } catch (PDOException $e) {
-            // ВРЕМЕННО: выводим подробности, чтобы понять, что именно не так.
-            // Оно уйдёт в docker logs app.
             error_log('DB connection failed. DSN=' . $dsn . ' Error=' . $e->getMessage());
 
-            // А наружу — ключ + текст ошибки, чтобы ты видел в JSON.
             throw new \RuntimeException(
                 'error_db_connection_failed: ' . $e->getMessage(),
                 0,

@@ -40,22 +40,20 @@ final class CreatePollService
         $contentType = $request->getContextType();
         $contextKey  = $request->getContextKey();
 
-        // Сам опрос
         $poll = new Poll(
-            null,                          // id
-            $contentType,                  // contentType (MAP/MOD/...)
-            $contextKey,                   // contextKey (next_map, better_grass, ...)
-            $request->getTitleKey(),       // titleKey
-            $request->getDescriptionKey(), // descriptionKey
-            false,                         // isMultipleChoice
-            Poll::STATUS_ACTIVE,           // status
-            $now,                          // startsAt
-            $request->getExpiresAt(),      // endsAt (может быть null)
-            $creatorId,                    // createdByUserId
-            $now                           // createdAt
+            null,
+            $contentType,
+            $contextKey,
+            $request->getTitleKey(),
+            $request->getDescriptionKey(),
+            false,
+            Poll::STATUS_ACTIVE,
+            $now,
+            $request->getExpiresAt(),
+            $creatorId,
+            $now
         );
 
-        // Варианты ответа
         $options          = [];
         $optionLabelKeys  = $request->getOptionLabelKeys();
         $position         = 1;
@@ -67,16 +65,15 @@ final class CreatePollService
             }
 
             $options[] = new Option(
-                null,    // id — выставит БД
-                0,       // poll_id временно, репозиторий сам подставит $newId
-                $labelKey, // label (ключ локализации)
-                $labelKey, // value — можно сделать таким же, нам он сейчас не критичен
+                null,
+                0,
+                $labelKey,
+                $labelKey,
                 $position++,
                 true
             );
         }
 
-        // ВАЖНО: создаём опрос и опции одним вызовом
         $this->pollRepository->add($poll, $options);
         
         return new CreatePollResponse(
@@ -86,8 +83,6 @@ final class CreatePollService
 
 
     /**
-     * Упрощённый фасад для контроллеров: принимает доменного пользователя
-     * и "сырые" данные формы/JSON, собирает CreatePollRequest и вызывает handle().
      *
      * @param User                 $user
      * @param array<string, mixed> $data
@@ -97,23 +92,19 @@ final class CreatePollService
         $rawOptions      = $data['options'] ?? [];
         $optionLabelKeys = [];
 
-        // Приводим options к массиву строк-ключей
         if (is_array($rawOptions)) {
             foreach ($rawOptions as $item) {
-                // Вариант: ['label_key' => 'option.map_1']
                 if (is_array($item) && isset($item['label_key'])) {
                     $optionLabelKeys[] = (string) $item['label_key'];
                     continue;
                 }
 
-                // Вариант: просто строка 'option.map_1'
                 if (is_string($item)) {
                     $optionLabelKeys[] = $item;
                 }
             }
         }
 
-        // 👇 ВАЖНО: поддерживаем и старые названия, и новые.
         $contextType = (string)(
             $data['context_type']
             ?? $data['content_type']
@@ -135,7 +126,7 @@ final class CreatePollService
             $contextType,
             $contextKey,
             $optionLabelKeys,
-            null // expiresAt
+            null
         );
 
         return $this->handle($request);

@@ -3,10 +3,8 @@
 declare(strict_types=1);
 
 return [
-    // Общие
     'ui.app.title' => 'Ingame content voting',
 
-    // Страница опроса
     'ui.page.poll.title' => 'Vote in poll',
 
     'ui.poll.message.vote_success' => 'Your vote has been saved.',
@@ -20,20 +18,17 @@ return [
     'ui.poll.error.invalid_id' => 'Poll id is invalid.',
     'ui.poll.error.not_found' => 'Poll not found.',
 
-        // --- Header / navigation ---
     'ui.web.header.language'      => 'Language',
     'ui.web.header.login'         => 'Log in',
     'ui.web.header.logout'        => 'Log out',
     'ui.web.header.logged_in_as'  => 'Logged in as',
 
-    // --- Polls list page ---
     'ui.web.polls.title'          => 'Content polls',
     'ui.web.polls.empty'          => 'There are no active demo polls right now.',
     'ui.web.polls.status.active'  => 'Active poll',
     'ui.web.polls.status.closed'  => 'Closed poll',
     'ui.web.polls.button.open'    => 'Open poll',
 
-    // --- Web login ---
     'ui.web.login.title'          => 'Sign in to ArenaX voting demo',
     'ui.web.login.username'       => 'Username',
     'ui.web.login.password'       => 'Password',
@@ -42,7 +37,6 @@ return [
     'ui.web.login.error_banned'   => 'Your account is banned.',
     'ui.web.login.helper_demousers' => 'Use demo accounts from seed data (e.g. admin, player1, player2).',
 
-        // --- Demo polls: titles & descriptions ---
     'poll.next_map.title'            => 'Next map in ArenaX',
     'poll.next_map.description'      => 'Choose which map should be played in the next match.',
 

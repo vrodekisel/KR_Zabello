@@ -53,7 +53,6 @@ SQL;
     }
 
     /**
-     * Найти все активные опросы по типу контента и его ключу.
      *
      * @return Poll[]
      */
@@ -90,7 +89,6 @@ SQL;
     }
 
     /**
-     * Создать новый опрос (и, при необходимости, сохранить связанные варианты).
      *
      * @param Option[] $options
      */
@@ -117,7 +115,6 @@ SQL;
 
         $newId = (int) $this->pdo->lastInsertId();
 
-        // Проставляем id обратно в сущность Poll через reflection
         $reflection = new \ReflectionObject($poll);
         if ($reflection->hasProperty('id')) {
             $prop = $reflection->getProperty('id');
@@ -125,12 +122,10 @@ SQL;
             $prop->setValue($poll, $newId);
         }
 
-        // Если options пустой, выходим
         if ($options === []) {
             return;
         }
 
-        // Сохраняем варианты в таблицу options
         $sqlOption = <<<SQL
 INSERT INTO options (poll_id, label, value, position, created_at)
 VALUES (:poll_id, :label, :value, :position, :created_at)
@@ -152,9 +147,6 @@ SQL;
         }
     }
 
-    /**
-     * Обновить существующий опрос.
-     */
     public function save(Poll $poll): void
     {
         $data = $poll->toArray();
@@ -186,7 +178,6 @@ SQL;
     }
 
     /**
-     * Получить варианты ответа для опроса.
      *
      * @return Option[]
      */

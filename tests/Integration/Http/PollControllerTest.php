@@ -12,14 +12,6 @@ use App\Domain\Entity\Poll;
 use App\Domain\Entity\Option;
 use App\Domain\Entity\User;
 
-/**
- * Интеграционный тест: проверяем, что CreatePollService
- * корректно работает поверх реализаций репозиториев.
- *
- * Класс называется PollControllerTest, потому что лежит в
- * tests/Integration/Http, но мы здесь тестируем сервис
- * с in-memory репозиторием, не HTTP.
- */
 final class PollControllerTest extends TestCase
 {
     public function testCreatePollThroughService(): void
@@ -66,10 +58,6 @@ final class PollControllerTest extends TestCase
     }
 }
 
-/**
- * In-memory реализация PollRepository для интеграционного теста HTTP-слоя.
- * Реализует все методы интерфейса, хранит данные в массивах.
- */
 final class InMemoryPollRepositoryForHttp implements PollRepository
 {
     /** @var array<int, Poll> */
@@ -81,7 +69,6 @@ final class InMemoryPollRepositoryForHttp implements PollRepository
     private int $autoIncrement = 1;
 
     /**
-     * Внутренняя логика сохранения опроса и его опций.
      *
      * @param Option[] $options
      */
@@ -92,7 +79,6 @@ final class InMemoryPollRepositoryForHttp implements PollRepository
         if ($id === null) {
             $id = $this->autoIncrement++;
 
-            // Проставляем id через reflection, если поле приватное
             $reflection = new \ReflectionObject($poll);
             if ($reflection->hasProperty('id')) {
                 $property = $reflection->getProperty('id');
@@ -106,7 +92,6 @@ final class InMemoryPollRepositoryForHttp implements PollRepository
     }
 
     /**
-     * Хелпер для теста — вернуть все опросы.
      *
      * @return Poll[]
      */
@@ -122,7 +107,6 @@ final class InMemoryPollRepositoryForHttp implements PollRepository
 
     public function findActiveById(int $id, \DateTimeImmutable $now): ?Poll
     {
-        // Для теста считаем, что все сохранённые опросы активные
         return $this->polls[$id] ?? null;
     }
 
@@ -134,7 +118,6 @@ final class InMemoryPollRepositoryForHttp implements PollRepository
         int $contentId,
         \DateTimeImmutable $now
     ): array {
-        // Для интеграционного теста этого достаточно
         return array_values($this->polls);
     }
 

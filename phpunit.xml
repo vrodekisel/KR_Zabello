@@ -19,7 +19,6 @@
         <env name="APP_ENV" value="testing"/>
         <env name="APP_DEBUG" value="true"/>
 
-        <!-- Тестовая база для внутриигрового голосования за контент -->
         <env name="DB_HOST" value="mysql"/>
         <env name="DB_PORT" value="3306"/>
         <env name="DB_DATABASE" value="ingame_content_voting_test"/>

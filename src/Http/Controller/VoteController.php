@@ -33,10 +33,8 @@ final class VoteController
         return;
     }
 
-    // 1) Пытаемся прочитать JSON
     $input = $this->getJsonInput();
 
-    // 2) Если JSON-полей нет, пробуем обычную форму (web-страница)
     if (empty($input)) {
         $input = $_POST;
     }

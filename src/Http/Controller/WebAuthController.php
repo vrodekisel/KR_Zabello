@@ -8,10 +8,6 @@ use App\Domain\Repository\UserRepository;
 use App\Localization\Translator;
 use App\View\View;
 
-/**
- * Веб-авторизация для HTML-клиента.
- * Логин через форму -> сессия ($_SESSION['user_id']).
- */
 final class WebAuthController
 {
     private UserRepository $userRepository;
@@ -41,13 +37,6 @@ final class WebAuthController
         return $this->translator->trans($key);
     }
 
-    // ===========================
-    // Форма логина (GET)
-    // ===========================
-
-    /**
-     * GET /web/login
-     */
     public function showLogin(): void
     {
         header('Content-Type: text/html; charset=utf-8');
@@ -73,13 +62,6 @@ final class WebAuthController
         ]);
     }
 
-    // ===========================
-    // Обработка логина (POST)
-    // ===========================
-
-    /**
-     * POST /web/login
-     */
     public function handleLogin(): void
     {
         $username = isset($_POST['username']) ? trim((string) $_POST['username']) : '';
@@ -108,11 +90,9 @@ final class WebAuthController
             return;
         }
 
-        // Сохраняем пользователя в сессию
         $_SESSION['user_id']  = $user->getId();
         $_SESSION['username'] = $user->getUsername();
 
-        // Обновляем язык, если выбран валидный
         if ($lang !== null && in_array($lang, $this->availableLocales, true)) {
             setcookie('lang', $lang, [
                 'expires'  => time() + 365 * 24 * 60 * 60,
@@ -131,13 +111,6 @@ final class WebAuthController
         exit;
     }
 
-    // ===========================
-    // Логаут
-    // ===========================
-
-    /**
-     * POST /web/logout
-     */
     public function logout(): void
     {
         $_SESSION = [];

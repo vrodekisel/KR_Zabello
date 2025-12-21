@@ -44,12 +44,12 @@ class AuthController
         $passwordHash = password_hash($password, PASSWORD_BCRYPT);
 
         $user = new User(
-            null,                   // id — пока null, БД сама выставит
-            $username,              // имя пользователя
-            $passwordHash,          // хэш пароля
-            User::ROLE_PLAYER,      // роль игрока
-            false,                  // is_banned
-            new DateTimeImmutable() // created_at = сейчас
+            null,
+            $username,
+            $passwordHash,
+            User::ROLE_PLAYER,
+            false,
+            new DateTimeImmutable()
         );
 
         $this->userRepository->save($user);
@@ -151,39 +151,27 @@ class AuthController
         return base64_encode($data . ':' . $hash);
     }
 
-    /**
-     * Вспомогательный метод для других контроллеров:
-     * достаёт user_id из токена в заголовке.
-     *
-     * Поддерживает:
-     *   - Authorization: Bearer <token>
-     *   - X-Auth-Token: <token>
-     */
+
     public function getUserIdFromToken(): ?int
     {
         $rawHeader = null;
 
-        // 1) Пытаемся получить заголовки «по-человечески»
         if (function_exists('getallheaders')) {
             $headers = getallheaders();
             foreach ($headers as $name => $value) {
                 $lower = strtolower((string)$name);
 
-                // Стандартный вариант
                 if ($lower === 'authorization') {
                     $rawHeader = (string)$value;
                     break;
                 }
 
-                // Альтернативный: X-Auth-Token: <token>
                 if ($lower === 'x-auth-token') {
                     $rawHeader = 'Bearer ' . trim((string)$value);
-                    // break не обязателен, но можно и выйти
                 }
             }
         }
 
-        // 2) Фоллбеки через $_SERVER, если getallheaders() не помог
         if ($rawHeader === null || $rawHeader === '') {
             if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
                 $rawHeader = (string)$_SERVER['HTTP_AUTHORIZATION'];
@@ -198,7 +186,6 @@ class AuthController
             return null;
         }
 
-        // 3) Отделяем сам токен
         $token = $rawHeader;
         if (stripos($rawHeader, 'Bearer ') === 0) {
             $token = trim(substr($rawHeader, 7));
@@ -208,7 +195,6 @@ class AuthController
             return null;
         }
 
-        // 4) Декодируем и проверяем подпись
         $decoded = base64_decode($token, true);
         if ($decoded === false) {
             return null;

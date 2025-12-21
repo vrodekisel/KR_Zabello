@@ -9,7 +9,6 @@ class FileLogger
     public function __construct(?string $filePath = null)
     {
         if ($filePath === null) {
-            // __DIR__ = project-root/src/Infrastructure/Logging
             $this->filePath = __DIR__ . '/../../../storage/logs/app.log';
         } else {
             $this->filePath = $filePath;
@@ -21,15 +20,14 @@ class FileLogger
         }
 
         if (!file_exists($this->filePath)) {
-            // создаём пустой лог-файл
             touch($this->filePath);
         }
     }
 
     /**
-     * @param string $level        Например: "info", "warning", "error"
-     * @param string $messageKey   Ключ локализации, не русский текст
-     * @param array<string,mixed> $context Дополнительные данные (user_id, poll_id и т.п.)
+     * @param string $level
+     * @param string $messageKey
+     * @param array<string,mixed>
      */
     public function log(string $level, string $messageKey, array $context = []): void
     {
@@ -42,7 +40,6 @@ class FileLogger
 
         $line = json_encode($record, JSON_UNESCAPED_SLASHES) . PHP_EOL;
 
-        // простая файловая запись без заморочек
         file_put_contents($this->filePath, $line, FILE_APPEND);
     }
 

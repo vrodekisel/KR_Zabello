@@ -29,15 +29,6 @@ class Option
         $this->isActive = $isActive;
     }
 
-    /**
-     * Сборка Option из строки таблицы options.
-     *
-     * Схема options:
-     *  id, poll_id, label, value, position, created_at
-     *
-     * created_at и признак активности в домене не храним,
-     * поэтому isActive считаем true по умолчанию.
-     */
     public static function fromArray(array $row): self
     {
         $id = isset($row['id']) ? (int) $row['id'] : null;
@@ -47,7 +38,6 @@ class Option
         $value    = (string) ($row['value'] ?? '');
         $sortOrder = isset($row['position']) ? (int) $row['position'] : 1;
 
-        // В текущей схеме options нет колонки is_active, поэтому считаем все варианты активными.
         $isActive = true;
 
         return new self(
@@ -60,9 +50,6 @@ class Option
         );
     }
 
-    /**
-     * Представление Option в виде массива для INSERT/UPDATE в options.
-     */
     public function toArray(): array
     {
         return [
@@ -71,7 +58,6 @@ class Option
             'label'    => $this->labelKey,
             'value'    => $this->value,
             'position' => $this->sortOrder,
-            // created_at можно не задавать — БД проставит по умолчанию
         ];
     }
 

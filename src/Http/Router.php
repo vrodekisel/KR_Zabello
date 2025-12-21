@@ -45,7 +45,6 @@ class Router
             return false;
         }
 
-        // Простое точное совпадение пути: /polls, /auth/login и т.п.
         return rtrim($routePath, '/') === rtrim($requestPath, '/');
     }
 
@@ -54,13 +53,10 @@ class Router
      */
     private function handleRoute(callable $handler): void
     {
-        // Контроллеры сами отправляют JSON-ответ и код статуса.
         $handler();
     }
 
     /**
-     * Вспомогательный метод, если вдруг захочется вернуть JSON прямо из роутера.
-     *
      * @param mixed $data
      */
     public function sendJson($data, int $statusCode = 200): void

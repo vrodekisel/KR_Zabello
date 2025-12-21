@@ -19,7 +19,6 @@ class VotePolicyService
     }
 
     /**
-     * Высокоуровневая проверка, которую можно вызывать из прикладного слоя.
      *
      * @return array{allowed: bool, reasonCode: ?string}
      */
@@ -61,12 +60,10 @@ class VotePolicyService
     }
 
     /**
-     * Метод, который используют юнит-тесты:
-     * проверяет, голосовал ли уже пользователь в этом опросе.
      *
      * @param Vote[] $existingVotes
      *
-     * @throws \DomainException если пользователь уже голосовал
+     * @throws \DomainException
      */
     public function assertCanVote(
         Poll $poll,
@@ -76,7 +73,6 @@ class VotePolicyService
         string $userAgent
     ): void {
         foreach ($existingVotes as $vote) {
-            // Ожидаем, что у Vote есть getPollId() и getUserId()
             if (
                 $vote instanceof Vote
                 && $vote->getPollId() === $poll->getId()
@@ -85,9 +81,5 @@ class VotePolicyService
                 throw new \DomainException('vote.error.already_voted');
             }
         }
-
-        // Если дошли досюда — ограничений по "уже голосовал" нет.
-        // Остальные проверки (бан, лимит по времени и т.п.)
-        // можно делать отдельно через canUserVote(), если нужно.
     }
 }

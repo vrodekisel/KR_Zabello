@@ -4,10 +4,6 @@ declare(strict_types=1);
 
 namespace App\Application\UseCase\CreatePoll;
 
-/**
- * DTO-запрос для сценария "создать опрос".
- * Все текстовые поля — ключи локализации.
- */
 final class CreatePollRequest
 {
     private int $creatorUserId;

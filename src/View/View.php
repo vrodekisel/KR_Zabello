@@ -6,11 +6,6 @@ namespace App\View;
 
 use App\Localization\Translator;
 
-/**
- * Простейший рендерер шаблонов:
- * - кладём шаблоны в /views/*.php
- * - пробрасываем туда Translator и список доступных языков.
- */
 final class View
 {
     private Translator $translator;
@@ -41,11 +36,9 @@ final class View
             return;
         }
 
-        // Эти переменные будут доступны внутри шаблона
         $translator       = $this->translator;
         $availableLocales = $this->availableLocales;
 
-        // Пользовательские данные
         extract($data, EXTR_SKIP);
 
         require $viewFile;

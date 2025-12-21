@@ -58,15 +58,6 @@ class Vote
         );
     }
 
-    /**
-     * Сборка Vote из строки таблицы votes.
-     *
-     * Схема votes:
-     *  id, poll_id, option_id, user_id, created_at
-     *
-     * IP/UA/контекст в основном хранятся в vote_logs, поэтому
-     * здесь они будут null.
-     */
     public static function fromArray(array $row): self
     {
         $id = isset($row['id']) ? (int) $row['id'] : null;
@@ -86,15 +77,12 @@ class Vote
             $optionId,
             $userId,
             $createdAt,
-            null, // ipAddress — не из таблицы votes
-            null, // userAgent — не из таблицы votes
-            null  // contextKey — не из таблицы votes
+            null,
+            null,
+            null
         );
     }
 
-    /**
-     * Представление Vote в виде массива для INSERT/UPDATE в votes.
-     */
     public function toArray(): array
     {
         return [

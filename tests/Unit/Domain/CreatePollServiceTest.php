@@ -50,8 +50,6 @@ final class CreatePollServiceTest extends TestCase
 }
 
 /**
- * Простой in-memory репозиторий для Poll, реализующий интерфейс PollRepository.
- * Используется только в юнит-тесте CreatePollService.
  */
 final class InMemoryPollRepositoryForCreatePollService implements PollRepository
 {
@@ -64,7 +62,6 @@ final class InMemoryPollRepositoryForCreatePollService implements PollRepository
     private int $autoIncrement = 1;
 
     /**
-     * Удобный метод для теста — получить все опросы.
      *
      * @return Poll[]
      */
@@ -80,7 +77,6 @@ final class InMemoryPollRepositoryForCreatePollService implements PollRepository
 
     public function findActiveById(int $id, \DateTimeImmutable $now): ?Poll
     {
-        // Для целей теста считаем, что все сохранённые опросы "активные"
         return $this->polls[$id] ?? null;
     }
 
@@ -92,8 +88,6 @@ final class InMemoryPollRepositoryForCreatePollService implements PollRepository
         int $contentId,
         \DateTimeImmutable $now
     ): array {
-        // Для CreatePollService этот метод не используется,
-        // поэтому можно честно вернуть все текущие опросы
         return array_values($this->polls);
     }
 
@@ -165,7 +159,6 @@ final class InMemoryPollRepositoryForCreatePollService implements PollRepository
     }
 
     /**
-     * Внутренняя логика сохранения опроса и его опций.
      *
      * @param Option[] $options
      */

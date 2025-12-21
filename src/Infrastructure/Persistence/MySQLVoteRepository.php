@@ -18,9 +18,6 @@ final class MySQLVoteRepository implements VoteRepository
         $this->pdo = $connection->getPdo();
     }
 
-    /**
-     * Найти голос конкретного пользователя в конкретном опросе.
-     */
     public function findByUserAndPoll(int $userId, int $pollId): ?Vote
     {
         $sql = 'SELECT * FROM votes WHERE user_id = :user_id AND poll_id = :poll_id LIMIT 1';
@@ -39,13 +36,9 @@ final class MySQLVoteRepository implements VoteRepository
         return Vote::fromArray($row);
     }
 
-    /**
-     * Добавить новый голос.
-     */
     public function add(Vote $vote): void
     {
         $data = $vote->toArray();
-        // id генерируется в БД
         unset($data['id']);
 
         $columns = array_keys($data);
@@ -65,7 +58,6 @@ final class MySQLVoteRepository implements VoteRepository
 
         $newId = (int) $this->pdo->lastInsertId();
 
-        // Проставляем id обратно в сущность Vote через reflection (если нужно)
         $reflection = new \ReflectionObject($vote);
         if ($reflection->hasProperty('id')) {
             $prop = $reflection->getProperty('id');
@@ -75,7 +67,6 @@ final class MySQLVoteRepository implements VoteRepository
     }
 
     /**
-     * Подсчитать количество голосов по каждому варианту в опросе.
      *
      * @return array<int,int> key: optionId, value: votes count
      */
@@ -104,7 +95,6 @@ SQL;
     }
 
     /**
-     * Подсчитать количество голосов пользователя за недавний период.
      */
     public function countRecentVotesByUser(int $userId, DateTimeImmutable $since): int
     {
@@ -131,8 +121,6 @@ SQL;
     }
 
     /**
-     * Вспомогательный метод: сколько голосов поставил пользователь в конкретный опрос.
-     * НЕ обязателен интерфейсом, но может использоваться в других местах.
      */
     public function countByUserAndPoll(int $userId, int $pollId): int
     {
@@ -152,9 +140,6 @@ SQL;
         return (int) $row['cnt'];
     }
 
-    /**
-     * Обновление голоса (используется опционально, вне интерфейса).
-     */
     public function save(Vote $vote): Vote
     {
         $data = $vote->toArray();
@@ -188,7 +173,6 @@ SQL;
     }
 
     /**
-     * Получить все голоса по опросу.
      *
      * @return Vote[]
      */

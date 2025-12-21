@@ -10,13 +10,11 @@ TRUNCATE TABLE users;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
--- Демонстрационные пользователи (пароли: admin, player1, player2)
 INSERT INTO users (id, username, password_hash, is_banned, created_at) VALUES
 (1, 'admin',   '$2b$12$FLmTtE8x8.rG4EuK/YAZ4OzDPbUMD4TFHYAFdEawahMY6QftC9o/K', 0, NOW()),
 (2, 'player1', '$2b$12$YQcnIYvJk5HId7b6l1Ba3Ob6wojeGorLthYKbuPGuMPezBzqwHmUS', 0, NOW()),
 (3, 'player2', '$2b$12$tgMoVj9GKWpBNU5uEqwQF.7dCA/WOiwMIQF.CL2ZIIWuAJETvr6qy', 0, NOW());
 
--- Опрос 1: голосование карту
 INSERT INTO polls (
     id, title, description, type, is_active,
     content_type, content_key,
@@ -35,7 +33,6 @@ INSERT INTO polls (
     NULL
 );
 
--- Опрос 2: рейтинг мода BetterGrass
 INSERT INTO polls (
     id, title, description, type, is_active,
     content_type, content_key,
@@ -54,7 +51,6 @@ INSERT INTO polls (
     NULL
 );
 
--- Опрос 3: выбор популярного мода
 INSERT INTO polls (
     id, title, description, type, is_active,
     content_type, content_key,
@@ -73,7 +69,6 @@ INSERT INTO polls (
     NULL
 );
 
--- Варианты для опроса 1: карты
 INSERT INTO options (id, poll_id, label, value, position, created_at) VALUES
 (1, 1, 'option.map.frozen_temple.label',   'frozen_temple',   1, NOW()),
 (2, 1, 'option.map.desert_ruins.label',    'desert_ruins',    2, NOW()),
@@ -81,7 +76,6 @@ INSERT INTO options (id, poll_id, label, value, position, created_at) VALUES
 (4, 1, 'option.map.ice_cavern.label',      'ice_cavern',      4, NOW()),
 (5, 1, 'option.map.volcano_crater.label',  'volcano_crater',  5, NOW());
 
--- Варианты для опроса 2: рейтинг мода BetterGrass (1–5)
 INSERT INTO options (id, poll_id, label, value, position, created_at) VALUES
 (6,  2, 'option.mod.better_grass.rating.1.label', '1', 1, NOW()),
 (7,  2, 'option.mod.better_grass.rating.2.label', '2', 2, NOW()),
@@ -89,14 +83,12 @@ INSERT INTO options (id, poll_id, label, value, position, created_at) VALUES
 (9,  2, 'option.mod.better_grass.rating.4.label', '4', 4, NOW()),
 (10, 2, 'option.mod.better_grass.rating.5.label', '5', 5, NOW());
 
--- Варианты для опроса 3: список модов
 INSERT INTO options (id, poll_id, label, value, position, created_at) VALUES
 (11, 3, 'option.mod.better_grass.label',   'better_grass',   1, NOW()),
 (12, 3, 'option.mod.hd_textures.label',    'hd_textures',    2, NOW()),
 (13, 3, 'option.mod.fast_travel.label',    'fast_travel',    3, NOW()),
 (14, 3, 'option.mod.hardcore_mode.label',  'hardcore_mode',  4, NOW());
 
--- Голоса (успешные)
 INSERT INTO votes (id, poll_id, option_id, user_id, created_at) VALUES
 (1, 1, 3, 2, NOW() - INTERVAL 2 MINUTE),
 (2, 2, 9, 2, NOW() - INTERVAL 90 SECOND),
@@ -105,7 +97,6 @@ INSERT INTO votes (id, poll_id, option_id, user_id, created_at) VALUES
 (5, 3, 11, 2, NOW() - INTERVAL 65 SECOND),
 (6, 3, 12, 3, NOW() - INTERVAL 55 SECOND); 
 
--- Логи голосования
 INSERT INTO vote_logs (
     poll_id, option_id, user_id,
     ip_address, user_agent,

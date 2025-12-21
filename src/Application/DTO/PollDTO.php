@@ -12,10 +12,6 @@ final class PollDTO
     private string $titleKey;
     private ?string $descriptionKey;
 
-    /**
-     * В прикладном слое это называется "contextType",
-     * но по факту сюда попадает доменный contentType (map|mod).
-     */
     private string $contextType;
 
     private string $status;
@@ -49,22 +45,18 @@ final class PollDTO
     {
         $id = $poll->getId();
         if ($id === null) {
-            // В нормальной работе id должен быть выставлен репозиторием
-            // (в тестах это делает in-memory репозиторий до вызова fromEntity()).
             throw new \RuntimeException('poll.dto.error.id_is_null');
         }
 
-        // На текущем этапе сущность Poll не хранит в себе список опций,
-        // они живут в репозиториях. Поэтому отдаём пустой список.
         $optionDTOs = [];
 
         return new self(
             $id,
             $poll->getTitleKey(),
             $poll->getDescriptionKey(),
-            $poll->getContentType(),   // <-- маппим contentType домена в contextType DTO
+            $poll->getContentType(),
             $poll->getStatus(),
-            $poll->getEndsAt(),        // <-- интерпретируем endsAt как expiresAt
+            $poll->getEndsAt(),
             $optionDTOs
         );
     }

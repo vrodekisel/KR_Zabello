@@ -24,13 +24,6 @@ class PollController
         $this->authController    = $authController;
     }
 
-    /**
-     * GET /polls
-     *
-     * Сейчас: возвращаем активные опросы.
-     * Если передали ?content_type=...&content_key=..., берём только их.
-     * Если нет — берём демо-набор из seed.sql (карты + моды).
-     */
     public function index(): void
     {
         header('Content-Type: application/json; charset=utf-8');
@@ -43,15 +36,12 @@ class PollController
         $polls = [];
 
         if ($contentType !== null && $contentKey !== null) {
-            // Точечный фильтр по контенту
             $polls = $this->pollRepository->findAllActiveByContent(
                 (string) $contentType,
                 (string) $contentKey,
                 $now
             );
         } else {
-            // Демо-сценарий для курсовой:
-            // показываем несколько заранее известных контекстов
             $contexts = [
                 ['MAP', 'next_map'],
                 ['MOD', 'better_grass'],
@@ -84,7 +74,6 @@ class PollController
                     'status'          => $poll->getStatus(),
                     'is_active'       => $poll->isActive($now),
 
-                    // аккуратно работаем с null
                     'starts_at'       => $startsAt instanceof \DateTimeInterface
                         ? $startsAt->format(DATE_ATOM)
                         : null,
@@ -106,11 +95,6 @@ class PollController
         );
     }
 
-    /**
-     * POST /polls
-     *
-     * Создание опроса.
-     */
     public function create(): void
     {
         header('Content-Type: application/json; charset=utf-8');

@@ -58,7 +58,7 @@ class Poll
 
     private function assertValidContentType(string $contentType): void
     {
-        // Сейчас не валидируем жёстко: берём любое значение из БД.
+
     }
 
     private function assertValidStatus(string $status): void
@@ -68,22 +68,7 @@ class Poll
         }
     }
 
-    /**
-     * Сборка Poll из строки таблицы polls.
-     *
-     * Схема polls (schema.sql):
-     *  id, title, description, type, is_active, content_type, content_key,
-     *  created_by, created_at, expires_at
-     *
-     * Мы мапим:
-     *  - title/description как ключи локализации titleKey/descriptionKey;
-     *  - content_type -> contentType;
-     *  - content_key (строка) -> contextKey;
-     *  - type: 'single'/'multiple' -> isMultipleChoice;
-     *  - is_active -> status (active/closed);
-     *  - expires_at -> endsAt;
-     *  - startsAt в текущей схеме нет — оставляем null.
-     */
+
     public static function fromArray(array $row): self
     {
         $id = isset($row['id']) ? (int) $row['id'] : null;
@@ -136,9 +121,6 @@ class Poll
         );
     }
 
-    /**
-     * Представление Poll в виде массива для INSERT/UPDATE в polls.
-     */
     public function toArray(): array
     {
         return [
@@ -165,10 +147,7 @@ class Poll
         return $this->contentType;
     }
 
-    /**
-     * Старый «contentId» можно получить, если contextKey — число.
-     * Нужен только для совместимости.
-     */
+
     public function getContentId(): int
     {
         if ($this->contextKey !== null && ctype_digit($this->contextKey)) {
@@ -245,19 +224,11 @@ class Poll
         $this->status = self::STATUS_ACTIVE;
     }
 
-    // -------- Совместимость с админкой / фронтом --------
-
-    /**
-     * Для кода, который ожидает contextType — просто contentType.
-     */
     public function getContextType(): string
     {
         return $this->contentType;
     }
 
-    /**
-     * Нормальный геттер для contextKey (content_key в БД).
-     */
     public function getContextKey(): ?string
     {
         return $this->contextKey;

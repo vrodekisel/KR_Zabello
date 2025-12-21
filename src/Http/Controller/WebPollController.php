@@ -13,9 +13,6 @@ use App\Localization\Translator;
 use App\View\View;
 use DateTimeImmutable;
 
-/**
- * HTML-клиент: список опросов, страница опроса и результаты.
- */
 final class WebPollController
 {
     private PollRepository $pollRepository;
@@ -43,20 +40,13 @@ final class WebPollController
         return $this->translator->trans($key);
     }
 
-    // ===========================
-    // Список опросов (главная)
-    // ===========================
 
-    /**
-     * GET / или GET /web/polls
-     */
     public function list(): void
     {
         header('Content-Type: text/html; charset=utf-8');
 
         $now = new DateTimeImmutable();
 
-        // Берём несколько "контекстов" как в JSON-контроллере
         $contexts = [
             ['MAP', 'next_map'],
             ['MOD', 'better_grass'],
@@ -106,13 +96,6 @@ final class WebPollController
         ]);
     }
 
-    // ===========================
-    // Страница опроса + результаты
-    // ===========================
-
-    /**
-     * GET /web/poll?poll_id={id}
-     */
     public function show(): void
     {
         header('Content-Type: text/html; charset=utf-8');
@@ -163,8 +146,8 @@ final class WebPollController
             $resultsRequest  = new GetPollResultsRequest($pollId);
             $resultsResponse = $this->getPollResultsService->handle($resultsRequest);
 
-            $counts      = $resultsResponse->getResults();     // [optionId => count]
-            $percentages = $resultsResponse->getPercentages(); // [optionId => percent]
+            $counts      = $resultsResponse->getResults();
+            $percentages = $resultsResponse->getPercentages();
             $totalVotes  = $resultsResponse->getTotalVotes();
 
             foreach ($options as $option) {
@@ -236,13 +219,6 @@ final class WebPollController
         ]);
     }
 
-    // ===========================
-    // Голосование из HTML-формы
-    // ===========================
-
-    /**
-     * POST /web/poll/vote
-     */
     public function vote(): void
     {
         $pollId   = isset($_POST['poll_id']) ? (int) $_POST['poll_id'] : 0;
@@ -306,9 +282,6 @@ final class WebPollController
         exit;
     }
 
-    // ===========================
-    // Вспомогательные методы для стилей и шапки
-    // ===========================
 
     private function buildBaseStyles(): string
     {
@@ -354,7 +327,6 @@ final class WebPollController
         $userId   = $_SESSION['user_id'] ?? null;
         $username = $_SESSION['username'] ?? null;
 
-        // Текущий путь (без учёта query)
         $currentUri  = $_SERVER['REQUEST_URI'] ?? '/';
         $currentPath = parse_url($currentUri, PHP_URL_PATH) ?: '/';
 
@@ -372,11 +344,9 @@ final class WebPollController
 
         $html .= '<div class="topbar-right">';
 
-        // ----- Переключатель языка -----
         $html .= '<span>' . htmlspecialchars($this->t('ui.web.header.language'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . ': ';
 
         foreach (['en', 'ru'] as $lang) {
-            // Берём все текущие GET-параметры (poll_id, status и т.д.)
             $params = $_GET;
             $params['lang'] = $lang;
 
@@ -393,7 +363,6 @@ final class WebPollController
 
         $html .= '</span>';
 
-        // ----- Блок пользователя -----
         if (is_int($userId) && $userId > 0 && is_string($username)) {
             $html .= '<span>'
                 . htmlspecialchars($this->t('ui.web.header.logged_in_as'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')

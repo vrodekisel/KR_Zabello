@@ -24,9 +24,6 @@ final class WebAdminPollDetailsController
         $this->polls      = $pollRepository;
     }
 
-    /**
-     * GET /web/admin/poll?poll_id=...
-     */
     public function show(): void
     {
         $pollId = isset($_GET['poll_id']) ? (int) $_GET['poll_id'] : 0;
@@ -44,7 +41,6 @@ final class WebAdminPollDetailsController
             return;
         }
 
-        // Берём варианты опроса и превращаем в массивы для шаблона
         $optionEntities = $this->polls->findOptionsByPollId($pollId);
         $options        = [];
 

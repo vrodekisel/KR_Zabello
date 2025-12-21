@@ -77,16 +77,15 @@ final class CastVoteService
                 $poll->getId(),
                 $option->getId(),
                 $user->getId(),
-                new \DateTimeImmutable(),      // 5: createdAt
-                $request->getIpAddress(),      // 6: IP
-                $request->getUserAgent(),      // 7: User-Agent
-                null                           // 8: дополнительное поле (reason/что-то ещё)
+                new \DateTimeImmutable(),
+                $request->getIpAddress(),
+                $request->getUserAgent(),
+                null
             );
 
             $savedVote = $this->voteRepository->save($vote);
         }
 
-        // 6. Логируем попытку голосования, если репозиторий умеет
         if (method_exists($this->voteRepository, 'logAttempt')) {
             $this->voteRepository->logAttempt(
                 $poll->getId(),
